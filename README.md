@@ -18,16 +18,20 @@
 ### 🕵️ CONTROL Headquarters
 - **Operations Centre** — Dashboard showing all registered projects with status, health, and quick actions
 - **Persistent Multi-Terminal Hub** — Multiple xterm.js terminals with tab and mini-panel management. Sessions survive page navigation. Pop-out windows. Fullscreen mode.
-- **Agent 99** — Persistent Claude CLI assistant accessible from every page (Cmd+9). She knows all your projects, can schedule tasks, run health checks, and create new projects from natural language.
+- **KAOS Mode** — launch Claude with --dangerously-skip-permissions (☠️ button)
+- **Session resume** — Claude terminals auto-resume the project's last session- **Agent 99** — Persistent Claude CLI assistant accessible from every page (Cmd+9). She knows all your projects, can schedule tasks, run health checks, and create new projects from natural language.
 
-### 📋 Mission Dossier
+### 📋 Mission Dossier (Task Register)
 - **Consolidated task register** across all projects — bugs, features, improvements, tasks
 - **Syncs with production** — pulls from your apps' feedback APIs, pushes status updates back
 - **Agent assignment** — assign tasks to 86 (Sonnet/Opus) or 99
 - **Scheduling** — set date/time for agent work, friendly cron builder with presets
 - **Multi-select bulk actions** — run, deploy, or run & deploy selected items
 - **Quality gates** — review states, rejection loops with feedback
-
+- **Session management** — store and resume Claude CLI sessions per project
+- **CLAUDE.md generation** — edit Business Problem + Proposed Solution, auto-generate CLAUDE.md
+- **Intelligent merge** — updates CLAUDE.md without overwriting existing content
+- **Reconnaissance** — scan project directories with time grouping, search, undercover system
 ### 🚀 Agent Deployment & Execution
 - **Sequential task execution** per project — no conflicts, no timeouts
 - **Git workflow** — agents commit to `agent/<task>` branches, push for review
@@ -64,7 +68,8 @@
 - **Health checks** — git status, dependencies, common issues, project size
 - **Vulnerability scanning** — npm audit, pip-audit integration
 - **Log analysis** — error pattern detection in project logs
-
+- **Smart polling** — SocketIO pauses when browser tab is inactive, resumes on focus
+- **Agent state machine** — offline/idle/busy/sleeping/error with heartbeat tracking
 ### 🏋️ Training Ground (Regression)
 - **Regression branches** — isolated git branches for testing changes
 - **Promote to production** — merge to main with one click

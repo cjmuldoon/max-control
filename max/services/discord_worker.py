@@ -70,7 +70,7 @@ def _load_project_paths():
 PENDING_HANDOFFS = {}  # task_id -> channel_id
 
 
-LOGS_CHANNEL = '1485343011041841213'
+LOGS_CHANNEL = os.environ.get('DISCORD_LOGS_CHANNEL', '')
 
 
 def _post_to_logs(message):
