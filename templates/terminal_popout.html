@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONTROL Mainframe — {{ project_name or 'Terminal' }}</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/dark.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/light.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/soft.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; overflow: hidden; background: var(--terminal-bg); }
+        #popout-terminal { width: 100%; height: 100%; }
+        .popout-bar {
+            height: 28px;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            font-size: 11px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            -webkit-app-region: drag;
+        }
+        .popout-bar strong { color: var(--accent); }
+        #popout-container { height: calc(100% - 28px); }
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+</head>
+<body>
+    <div id="popout-terminal">
+        <div class="popout-bar">
+            <span>&#x1F575; <strong>CONTROL Mainframe</strong> — {{ project_name or 'Terminal' }}</span>
+            <span>&#x1F512; Cone of Silence Active</span>
+        </div>
+        <div id="popout-container"></div>
+    </div>
+
+    <script>
+        // Apply saved theme
+        const theme = localStorage.getItem('max-theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+
+        const socket = io();
+        let terminal = null;
+        let fitAddon = null;
+        let sessionId = null;
+
+        socket.on('connect', () => {
+            const style = getComputedStyle(document.documentElement);
+
+            terminal = new Terminal({
+                cursorBlink: true,
+                fontSize: 14,
+                fontFamily: "'SF Mono', Monaco, 'Cascadia Code', monospace",
+                theme: {
+                    background: style.getPropertyValue('--terminal-bg').trim(),
+                    foreground: style.getPropertyValue('--terminal-fg').trim(),
+                    cursor: '#E8734A',
+                    cursorAccent: style.getPropertyValue('--terminal-bg').trim(),
+                    selectionBackground: 'rgba(232, 115, 74, 0.3)',
+                },
+            });
+
+            fitAddon = new FitAddon.FitAddon();
+            terminal.loadAddon(fitAddon);
+            terminal.open(document.getElementById('popout-container'));
+            fitAddon.fit();
+
+            // Reconnect to existing session or create new
+            const existingSession = '{{ session_id or "" }}';
+            if (existingSession) {
+                sessionId = existingSession;
+                socket.emit('terminal_subscribe', { session_id: existingSession });
+            } else {
+                socket.emit('terminal_create', {
+                    project_path: '{{ project_path or "" }}' || null,
+                });
+            }
+
+            socket.on('terminal_created', (data) => {
+                sessionId = data.session_id;
+            });
+
+            socket.on('terminal_subscribed', (data) => {
+                sessionId = data.session_id;
+            });
+
+            socket.on('terminal_output', (data) => {
+                if (data.session_id === sessionId && terminal) {
+                    terminal.write(data.data);
+                }
+            });
+
+            socket.on('terminal_closed', (data) => {
+                if (data.session_id === sessionId && terminal) {
+                    terminal.writeln(`\r\n\x1b[33m${data.message}\x1b[0m`);
+                }
+            });
+
+            terminal.onData((data) => {
+                if (sessionId) {
+                    socket.emit('terminal_input', { session_id: sessionId, data });
+                }
+            });
+
+            // Resize handling
+            new ResizeObserver(() => {
+                if (fitAddon && terminal) {
+                    fitAddon.fit();
+                    if (sessionId) {
+                        socket.emit('terminal_resize', {
+                            session_id: sessionId,
+                            rows: terminal.rows,
+                            cols: terminal.cols,
+                        });
+                    }
+                }
+            }).observe(document.getElementById('popout-container'));
+
+            terminal.focus();
+        });
+    </script>
+</body>
+</html>

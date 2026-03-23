@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Mission Schedule{% endblock %}
+{% block topbar_title %}Mission Schedule{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x1F4C5; Mission Schedule</h1>
+</div>
+
+<p class="text-sm text-muted mb-3">Recurring automated missions — health checks, vulnerability scans, and custom tasks on a cron schedule. Each schedule runs against a specific project at the configured interval.</p>
+
+<!-- Create New Schedule -->
+<div class="detail-section mb-4">
+    <div class="detail-section-title">&#x2795; Schedule New Mission</div>
+
+    <!-- Friendly quick presets -->
+    <div class="mb-3">
+        <div class="text-xs text-muted mb-2">Quick presets:</div>
+        <div class="flex gap-2" style="flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setCron('0 18 * * *', 'Daily 6pm')">Every day at 6pm</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setCron('0 9 * * 1-5', 'Weekday 9am')">Weekdays at 9am</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setCron('0 */6 * * *', 'Every 6 hours')">Every 6 hours</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setCron('0 0 * * 0', 'Weekly Sunday')">Weekly (Sunday midnight)</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setCron('*/30 * * * *', 'Every 30 min')">Every 30 minutes</button>
+        </div>
+    </div>
+
+    <!-- Friendly builder -->
+    <div class="mb-3" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <span class="text-sm">Run at</span>
+        <input type="time" id="sched-time" class="form-input" style="width: 120px; font-size: 13px;" value="18:00" onchange="buildCron()">
+        <span class="text-sm">on</span>
+        <select id="sched-days" class="form-select" style="width: auto; font-size: 13px;" onchange="buildCron()">
+            <option value="* * *">Every day</option>
+            <option value="* * 1-5">Weekdays only</option>
+            <option value="* * 0">Sundays</option>
+            <option value="* * 1">Mondays</option>
+            <option value="* * 5">Fridays</option>
+            <option value="1 * *">1st of month</option>
+        </select>
+        <span class="text-sm text-muted">→</span>
+        <code id="sched-preview" class="mono text-sm" style="color: var(--accent);">0 18 * * *</code>
+    </div>
+
+    <form method="POST" action="{{ url_for('schedules.create') }}" class="flex gap-2 items-center" style="flex-wrap: wrap;">
+        <select name="project_id" class="form-select" style="width: auto;" required>
+            <option value="">Select operation...</option>
+            {% for project in projects %}
+            <option value="{{ project.id }}">{{ project.name }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="name" id="sched-name" class="form-input" placeholder="Mission name" style="width: 180px;" required>
+        <input type="text" name="cron_expression" id="sched-cron" class="form-input mono" value="0 18 * * *" style="width: 150px;" required>
+        <select name="task_type" class="form-select" style="width: auto;">
+            <option value="health_check">&#x1F3E5; Health Check</option>
+            <option value="vuln_scan">&#x1F6E1; Vuln Scan</option>
+            <option value="custom">&#x2699; Custom</option>
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm">&#x1F4C5; Schedule</button>
+    </form>
+    <div class="text-xs text-muted mt-2">Or just ask Agent 99 (click the <strong style="color:var(--accent);">99</strong> button): <em>"Schedule a health check for all projects at 6pm daily"</em></div>
+
+    <script>
+    function setCron(cron, name) {
+        document.getElementById('sched-cron').value = cron;
+        document.getElementById('sched-name').value = name;
+        document.getElementById('sched-preview').textContent = cron;
+    }
+    function buildCron() {
+        const time = document.getElementById('sched-time').value;
+        const days = document.getElementById('sched-days').value;
+        if (!time) return;
+        const [h, m] = time.split(':');
+        const cron = `${parseInt(m)} ${parseInt(h)} ${days}`;
+        document.getElementById('sched-cron').value = cron;
+        document.getElementById('sched-preview').textContent = cron;
+    }
+    </script>
+</div>
+
+<!-- Existing Schedules -->
+{% if schedules %}
+<div style="display: flex; flex-direction: column; gap: 8px;">
+    {% for sched in schedules %}
+    <div class="detail-section" style="padding: 12px 16px;">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="flex items-center gap-2">
+                    {% if sched.task_type == 'health_check' %}&#x1F3E5;
+                    {% elif sched.task_type == 'vuln_scan' %}&#x1F6E1;
+                    {% else %}&#x2699;{% endif %}
+                    <strong class="text-sm">{{ sched.name }}</strong>
+                    <span class="mono text-xs text-muted">{{ sched.cron_expression }}</span>
+                </div>
+                <div class="text-xs text-muted mt-1">
+                    {% if sched.project %}{{ sched.project.name }}{% endif %}
+                    {% if sched.last_run_at %} · Last: {{ sched.last_run_at }}{% endif %}
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <form method="POST" action="{{ url_for('schedules.toggle', schedule_id=sched.id) }}">
+                    <button type="submit" class="btn btn-sm {% if sched.enabled %}btn-primary{% else %}btn-secondary{% endif %}">
+                        {% if sched.enabled %}&#x23F8; Pause{% else %}&#x25B6; Resume{% endif %}
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('schedules.delete', schedule_id=sched.id) }}" onsubmit="return confirm('Remove this scheduled mission?');">
+                    <button type="submit" class="btn btn-danger btn-sm">&#x1F5D1;</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">&#x1F4C5;</div>
+    <div class="empty-title">No scheduled missions</div>
+    <div class="empty-quote">"{{ smart_quote('empty') }}"</div>
+</div>
+{% endif %}
+{% endblock %}

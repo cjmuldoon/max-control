@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Maxwell Smart — Agent 86 -->
+  <!-- Hair -->
+  <path d="M14 24C14 14 22 6 32 6C42 6 50 14 50 24L50 28C50 28 48 22 46 20C44 14 38 10 32 10C26 10 20 14 18 20C16 22 14 28 14 28L14 24Z" fill="#1A1A1A"/>
+  <!-- Face -->
+  <ellipse cx="32" cy="30" rx="15" ry="17" fill="#F0C8A0"/>
+  <!-- Eyes -->
+  <ellipse cx="26" cy="28" rx="2" ry="2.5" fill="#3A2A1A"/>
+  <ellipse cx="38" cy="28" rx="2" ry="2.5" fill="#3A2A1A"/>
+  <circle cx="25.5" cy="27.5" r="0.8" fill="white"/>
+  <circle cx="37.5" cy="27.5" r="0.8" fill="white"/>
+  <!-- Eyebrows — slightly raised (classic Smart look) -->
+  <path d="M22 24C23.5 22 27 22 29 23.5" stroke="#1A1A1A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M42 24C40.5 22 37 22 35 23.5" stroke="#1A1A1A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- Nose -->
+  <path d="M32 29L30 34L34 34Z" fill="#D4A574" opacity="0.5"/>
+  <!-- Confident smirk -->
+  <path d="M27 37C28.5 38.5 31 39 33 38.5C35 38 36.5 37 37 36.5" stroke="#A0785A" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <!-- Neck -->
+  <rect x="28" y="45" width="8" height="6" rx="2" fill="#F0C8A0"/>
+  <!-- Suit -->
+  <path d="M16 58C16 51 23 47 32 47C41 47 48 51 48 58L48 64L16 64Z" fill="#2A2A2A"/>
+  <!-- Suit lapels -->
+  <path d="M28 47L32 55L25 64" stroke="#1A1A1A" stroke-width="1" fill="none"/>
+  <path d="M36 47L32 55L39 64" stroke="#1A1A1A" stroke-width="1" fill="none"/>
+  <!-- Tie -->
+  <path d="M31 51L32 60L33 51Z" fill="#E8734A"/>
+  <!-- Hair top -->
+  <path d="M18 20C19 14 25 9 32 9C39 9 45 14 46 20C46 20 42 12 32 12C22 12 18 20 18 20Z" fill="#1A1A1A"/>
+  <!-- Shoe phone hint near ear -->
+  <rect x="10" y="30" width="5" height="8" rx="2" fill="#3A3A3A" opacity="0.4"/>
+</svg>

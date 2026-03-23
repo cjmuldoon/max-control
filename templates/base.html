@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('max-theme') || 'dark');</script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Max{% endblock %} — CONTROL</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+
+    <!-- Themes (all loaded, toggled via data-theme) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/dark.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/light.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/soft.css') }}">
+
+    <!-- Main styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+
+    <!-- SocketIO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="app-shell">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="logo-icon">86</div>
+                    <div>
+                        <div class="logo-text">Max</div>
+                        <div class="logo-subtitle">CONTROL HQ</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Field Operations</div>
+                    <a href="{{ url_for('inbox.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('inbox.') %}active{% endif %}">
+                        <span class="nav-icon">&#x1F4EC;</span>
+                        <span>Inbox</span>
+                        {% if inbox_unread is defined and inbox_unread > 0 %}
+                        <span class="nav-badge">{{ inbox_unread }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{{ url_for('main.launchpad') }}" class="nav-item {% if request.endpoint == 'main.launchpad' or request.endpoint and request.endpoint.startswith('projects.') %}active{% endif %}">
+                        <span class="nav-icon">&#x1F575;</span>
+                        <span>Operations Centre</span>
+                        {% if running_count is defined and running_count > 0 %}
+                        <span class="nav-badge">{{ running_count }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{{ url_for('terminal.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('terminal.') %}active{% endif %}">
+                        <span class="nav-icon">&#x1F4BB;</span>
+                        <span>Mainframe</span>
+                    </a>
+                    <a href="{{ url_for('tasks.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('tasks.') %}active{% endif %}">
+                        <span class="nav-icon">&#x1F4CB;</span>
+                        <span>Mission Briefings</span>
+                        {% if pending_tasks is defined and pending_tasks > 0 %}
+                        <span class="nav-badge">{{ pending_tasks }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{{ url_for('schedules.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('schedules.') %}active{% endif %}">
+                        <span class="nav-icon">&#x1F4C5;</span>
+                        <span>Mission Schedule</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Intelligence</div>
+                    <a href="{{ url_for('feedback.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('feedback.') %}active{% endif %}">
+                        <span class="nav-icon">&#x1F4CB;</span>
+                        <span>Mission Dossier</span>
+                        {% if awaiting_deploy is defined and awaiting_deploy > 0 %}
+                        <span class="nav-badge" style="background: var(--warning); color: #000;">{{ awaiting_deploy }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{{ url_for('bots.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('bots.') %}active{% endif %}">
+                        <span class="nav-icon">&#x1F4DE;</span>
+                        <span>Shoe Phone</span>
+                        {% if bot_count is defined and bot_count > 0 %}
+                        <span class="nav-badge">{{ bot_count }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{{ url_for('audit.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('audit.') %}active{% endif %}">
+                        <span class="nav-icon">&#x1F4DC;</span>
+                        <span>Audit Trail</span>
+                    </a>
+                    <a href="{{ url_for('analytics.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('analytics.') %}active{% endif %}">
+                        <span class="nav-icon">&#x1F4CA;</span>
+                        <span>Intel Reports</span>
+                    </a>
+                    <a href="{{ url_for('agent99_config.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('agent99_config.') %}active{% endif %}">
+                        <span class="nav-icon">&#x1F469;</span>
+                        <span>99's Direct Line</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">CONTROL Admin</div>
+                    <a href="{{ url_for('vps.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('vps.') %}active{% endif %}">
+                        <span class="nav-icon">&#x1F30D;</span>
+                        <span>Satellite Office</span>
+                    </a>
+                    <a href="{{ url_for('backup.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('backup.') %}active{% endif %}">
+                        <span class="nav-icon">&#x1F4BE;</span>
+                        <span>Emergency Protocols</span>
+                    </a>
+                    <a href="{{ url_for('settings.index') }}" class="nav-item {% if request.endpoint == 'settings.index' %}active{% endif %}">
+                        <span class="nav-icon">&#x2699;</span>
+                        <span>Configuration</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="sidebar-footer" style="display: flex; align-items: center; gap: 6px;">
+                <div class="theme-switcher" style="flex: 1;">
+                    <button class="theme-btn" data-theme="dark" title="Dark — Night Ops">&#x1F319;</button>
+                    <button class="theme-btn" data-theme="light" title="Light — Daylight Ops">&#x2600;</button>
+                    <button class="theme-btn" data-theme="soft" title="Soft — CONTROL HQ">&#x1F30A;</button>
+                </div>
+                <button class="btn-icon" onclick="toggleSidebar()" title="Collapse/Expand" style="flex-shrink: 0;">
+                    <span id="sidebar-toggle-icon">&#x25C0;</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="topbar">
+                <div class="topbar-left">
+                    <span class="topbar-title">{% block topbar_title %}CONTROL Headquarters{% endblock %}</span>
+                </div>
+                <div class="topbar-right">
+                    <div class="lid-awake-controls" style="display:flex;align-items:center;gap:6px;margin-right:10px;">
+                        <span id="lid-awake-status" class="status-badge stopped" title="Lid-awake status" style="cursor:pointer;" onclick="lidAwake('status')">
+                            <span class="status-dot"></span>
+                            <span id="lid-awake-label">Lid</span>
+                        </span>
+                        <button id="lid-awake-btn-on" class="btn btn-sm" onclick="lidAwake('on')" title="Keep lid awake" style="padding:3px 10px;font-size:12px;">On</button>
+                        <button id="lid-awake-btn-off" class="btn btn-sm" onclick="lidAwake('off')" title="Allow sleep on lid close" style="padding:3px 10px;font-size:12px;">Off</button>
+                    </div>
+                    <span id="connection-status" class="status-badge stopped">
+                        <span class="status-dot"></span>
+                        <span>Connecting...</span>
+                    </span>
+                </div>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                <div class="flash {{ category }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <div class="content-area">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Agent 99 Floating Button -->
+    <button id="agent99-fab" onclick="Agent99.toggle()" title="Agent 99 — ⌘9">
+        <span>99</span>
+    </button>
+
+    <!-- Agent 99 Chat Panel -->
+    <div id="agent99-panel" class="agent99-panel">
+        <div class="agent99-header">
+            <div style="display:flex;align-items:center;gap:6px;">
+                <img src="/static/img/agent99.svg" style="width:22px;height:22px;border-radius:50%;">
+                <strong>Agent 99</strong>
+                <span class="text-xs text-muted">The competent one</span>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn-icon" onclick="Agent99.clear()" title="New conversation" style="width:24px;height:24px;font-size:12px;">&#x1F5D1;</button>
+                <button class="btn-icon" onclick="Agent99.toggle()" title="Close" style="width:24px;height:24px;font-size:14px;">&#x2715;</button>
+            </div>
+        </div>
+        <div id="agent99-feed" class="agent99-feed">
+            <div class="agent99-msg agent99-msg-assistant">
+                <div class="agent99-msg-header"><img src="/static/img/agent99.svg" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;border-radius:50%;">99</div>
+                <div class="agent99-msg-body">What do you need, Chief? Max and I are standing by. I can get 86 to run health checks, schedule missions, scan for KAOS activity — whatever you need.<br><br><span style="font-size:11px;color:var(--text-muted);">Try: "Schedule a health check for all projects at 6pm every day"</span></div>
+            </div>
+        </div>
+        <div id="agent99-attachments" style="display:none; padding: 4px 12px;">
+            <div class="flex items-center gap-2 text-xs" style="color: var(--accent);">
+                <span id="agent99-attachment-name"></span>
+                <button onclick="Agent99.clearAttachment()" style="background:none;border:none;color:var(--error);cursor:pointer;font-size:12px;">&#x2715;</button>
+            </div>
+        </div>
+        <div class="agent99-input-area">
+            <label style="cursor:pointer;display:flex;align-items:center;color:var(--text-muted);" title="Attach file or screenshot">
+                <input type="file" id="agent99-file" style="display:none;" onchange="Agent99.handleFile(this)" accept="image/*,.pdf,.txt,.py,.js,.json,.md,.csv,.log">
+                &#x1F4CE;
+            </label>
+            <input type="text" id="agent99-input" class="form-input" placeholder="Talk to 99... (⌘9 to toggle)" style="border-radius: 20px; padding: 10px 16px; flex: 1;">
+            <button class="btn btn-primary" onclick="Agent99.send()" style="border-radius: 20px; padding: 8px 16px;">Send</button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/socketio-client.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/agent99.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

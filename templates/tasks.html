@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Mission Briefings{% endblock %}
+{% block topbar_title %}Mission Briefings{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x1F4CB; Mission Briefings</h1>
+    <div class="flex gap-2">
+        <!-- Run checks dropdown -->
+        <div class="dropdown" style="position: relative;">
+            <button class="btn btn-secondary" onclick="toggleDropdown('health-dropdown')">&#x1F3E5; Run Check</button>
+            <div id="health-dropdown" class="dropdown-menu" style="display: none; position: absolute; right: 0; top: 100%; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 8px; min-width: 200px; z-index: 10; margin-top: 4px;">
+                {% for project in projects %}
+                <div class="flex gap-2 mb-2" style="white-space: nowrap;">
+                    <form method="POST" action="{{ url_for('tasks.run_health', project_id=project.id) }}" style="display: inline;">
+                        <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 11px;">&#x1F3E5;</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('tasks.run_vuln', project_id=project.id) }}" style="display: inline;">
+                        <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 11px;">&#x1F6E1;</button>
+                    </form>
+                    <span class="text-sm">{{ project.name }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<p class="text-sm text-muted mb-3">Findings from health checks, vulnerability scans, and agent proposals. Review, approve, reject, or add notes — the Chief has final say on every mission.</p>
+
+<!-- Stats Bar -->
+<div class="flex gap-2 mb-3" style="flex-wrap: wrap;">
+    <span class="status-badge" style="background: var(--accent-muted); color: var(--accent);">
+        &#x1F4CB; {{ stats.total }} Total
+    </span>
+    <span class="status-badge" style="background: rgba(210, 153, 34, 0.15); color: var(--warning);">
+        &#x23F3; {{ stats.proposed + stats.pending }} Pending Review
+    </span>
+    <span class="status-badge running">
+        &#x2705; {{ stats.completed }} Completed
+    </span>
+    <span class="status-badge error">
+        &#x274C; {{ stats.rejected }} Rejected
+    </span>
+</div>
+
+<!-- Filters -->
+<div class="detail-section mb-3" style="padding: 12px 16px;">
+    <form method="GET" class="flex gap-2 items-center" style="flex-wrap: wrap;">
+        <select name="status" class="form-select" style="width: auto; font-size: 13px;" onchange="this.form.submit()">
+            <option value="">All Statuses</option>
+            <option value="proposed" {% if status_filter == 'proposed' %}selected{% endif %}>&#x1F4E8; Proposed</option>
+            <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>&#x23F3; Pending</option>
+            <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>&#x2705; Approved</option>
+            <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>&#x274C; Rejected</option>
+            <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>&#x1F3C6; Completed</option>
+        </select>
+        <select name="type" class="form-select" style="width: auto; font-size: 13px;" onchange="this.form.submit()">
+            <option value="">All Types</option>
+            <option value="health_check" {% if type_filter == 'health_check' %}selected{% endif %}>&#x1F3E5; Health Check</option>
+            <option value="vuln_scan" {% if type_filter == 'vuln_scan' %}selected{% endif %}>&#x1F6E1; Vuln Scan</option>
+            <option value="bug" {% if type_filter == 'bug' %}selected{% endif %}>&#x1F41B; Bug</option>
+            <option value="feature" {% if type_filter == 'feature' %}selected{% endif %}>&#x2728; Feature</option>
+            <option value="improvement" {% if type_filter == 'improvement' %}selected{% endif %}>&#x1F4A1; Improvement</option>
+        </select>
+        <select name="project" class="form-select" style="width: auto; font-size: 13px;" onchange="this.form.submit()">
+            <option value="">All Operations</option>
+            {% for project in projects %}
+            <option value="{{ project.id }}" {% if project_filter == project.id %}selected{% endif %}>{{ project.name }}</option>
+            {% endfor %}
+        </select>
+        {% if status_filter or type_filter or project_filter %}
+        <a href="{{ url_for('tasks.index') }}" class="btn btn-secondary btn-sm">Clear Filters</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Task List -->
+{% if tasks %}
+<div style="display: flex; flex-direction: column; gap: 12px;">
+    {% for task in tasks %}
+    <div class="detail-section" style="padding: 16px;">
+        <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+                {% if task.type == 'health_check' %}&#x1F3E5;
+                {% elif task.type == 'vuln_scan' %}&#x1F6E1;
+                {% elif task.type == 'bug' %}&#x1F41B;
+                {% elif task.type == 'feature' %}&#x2728;
+                {% else %}&#x1F4CB;{% endif %}
+                <strong class="text-sm">{{ task.title }}</strong>
+            </div>
+            <div class="flex items-center gap-2">
+                {% if task.project %}
+                <span class="text-xs text-muted">{{ task.project.name }}</span>
+                {% endif %}
+                <span class="status-badge {% if task.status == 'completed' %}running{% elif task.status == 'rejected' %}error{% elif task.status in ('proposed', 'pending') %}stopped{% else %}stopped{% endif %}" style="font-size: 11px;">
+                    <span class="status-dot"></span>
+                    {{ task.status | title }}
+                </span>
+            </div>
+        </div>
+
+        {% if task.description %}
+        <p class="text-sm text-muted mb-3">{{ task.description }}</p>
+        {% endif %}
+
+        {% if task.user_notes %}
+        <p class="text-sm mb-3" style="color: var(--accent);"><strong>Chief's notes:</strong> {{ task.user_notes }}</p>
+        {% endif %}
+
+        {% if task.status in ('proposed', 'pending') %}
+        <div class="flex gap-2 items-center" style="flex-wrap: wrap;">
+            <form method="POST" action="{{ url_for('tasks.approve', task_id=task.id) }}" class="flex gap-2 items-center">
+                <input type="text" name="notes" class="form-input" placeholder="Notes for Agent 86 (optional)..." style="width: 250px; font-size: 12px; padding: 6px 10px;">
+                <button type="submit" class="btn btn-primary btn-sm">&#x2705; Approve</button>
+            </form>
+            <form method="POST" action="{{ url_for('tasks.reject', task_id=task.id) }}" style="display: inline;">
+                <button type="submit" class="btn btn-danger btn-sm">&#x274C; Reject</button>
+            </form>
+        </div>
+        {% elif task.status == 'approved' %}
+        <form method="POST" action="{{ url_for('tasks.complete', task_id=task.id) }}" class="flex gap-2 items-center">
+            <input type="text" name="resolution" class="form-input" placeholder="Resolution notes..." style="width: 300px; font-size: 12px; padding: 6px 10px;">
+            <button type="submit" class="btn btn-primary btn-sm">&#x1F3C6; Mark Complete</button>
+        </form>
+        {% endif %}
+
+        <time class="text-xs text-muted mt-2" data-utc="{{ task.created_at }}">{{ task.created_at }}</time>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">&#x1F4CB;</div>
+    <div class="empty-title">No mission briefings</div>
+    <div class="empty-quote">"{{ smart_quote('empty') }}"</div>
+    <p class="text-sm text-muted mt-2">Run a health check or vulnerability scan to generate briefings.</p>
+</div>
+{% endif %}
+
+<script>
+function toggleDropdown(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.dropdown')) {
+        document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+    }
+});
+</script>
+{% endblock %}

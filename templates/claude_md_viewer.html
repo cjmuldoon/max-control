@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}CLAUDE.md — {{ project.name }}{% endblock %}
+{% block topbar_title %}{{ project.name }} — CLAUDE.md{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x1F4DD; CLAUDE.md</h1>
+    <div class="flex gap-2">
+        <a href="{{ url_for('projects.detail', slug=project.slug) }}" class="btn btn-secondary btn-sm">&#x2190; Back to Dossier</a>
+        <form method="POST" action="{{ url_for('projects.generate_claude_md', slug=project.slug) }}" style="display:inline;" onsubmit="return confirm('This will overwrite the current CLAUDE.md with content from the mission brief. Continue?');">
+            <button type="submit" class="btn btn-primary btn-sm">&#x1F504; Regenerate from Brief</button>
+        </form>
+    </div>
+</div>
+<p class="text-sm text-muted mb-3">The CLAUDE.md file gives Claude CLI context about this project. Edit the mission brief on the project page, then regenerate.</p>
+
+{% if content %}
+<div class="detail-section" style="padding: 0; overflow: hidden;">
+    <div style="max-height: 70vh; overflow: auto; padding: 16px;">
+        <pre class="text-sm" style="white-space: pre-wrap; word-break: break-word; font-family: -apple-system, system-ui, sans-serif; line-height: 1.7; margin: 0;">{{ content }}</pre>
+    </div>
+</div>
+<div class="text-xs text-muted mt-2">
+    File: {{ project.path }}/CLAUDE.md
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">&#x1F4DD;</div>
+    <div class="empty-title">No CLAUDE.md found</div>
+    <div class="empty-quote">"{{ smart_quote('empty') }}"</div>
+    <p class="text-sm text-muted mt-2">Fill in the mission brief on the project page, then click "Regenerate from Brief".</p>
+</div>
+{% endif %}
+{% endblock %}

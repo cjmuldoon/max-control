@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  max:
+    build: .
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./max.db:/app/max.db
+      - ./uploads:/app/uploads
+      - ./task_results:/app/task_results
+      - ./backups:/app/backups
+      - ./logs:/app/logs
+      - ~/.ssh:/root/.ssh:ro
+      - ~/.claude:/root/.claude
+    env_file:
+      - .env
+    restart: unless-stopped

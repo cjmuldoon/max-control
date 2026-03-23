@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Quick Deploy{% endblock %}
+{% block topbar_title %}Quick Deploy — Full Operation Setup{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x26A1; Quick Deploy</h1>
+</div>
+<p class="text-sm text-muted mb-3">Set up a complete operation in one go — project, bots, schedules, and agent. "Would you believe... a fully operational mission in 30 seconds?"</p>
+
+<div class="detail-section" style="max-width: 700px;">
+    <div class="detail-section-title">&#x1F4CB; Mission Parameters</div>
+    <form method="POST" action="{{ url_for('projects.quick_create') }}">
+
+        <!-- Step 1: Project -->
+        <div style="border-left: 3px solid var(--accent); padding-left: 16px; margin-bottom: 20px;">
+            <div class="text-sm" style="font-weight: 600; color: var(--accent); margin-bottom: 8px;">Step 1 — Operation Identity</div>
+            <div class="form-group">
+                <label class="form-label">Operation Codename</label>
+                <input type="text" name="name" class="form-input" placeholder="e.g. Operation Sunbeam Tiger" required>
+            </div>
+            <div class="flex gap-2">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Field Office</label>
+                    <select name="location_type" class="form-select">
+                        <option value="local">🏠 Local HQ</option>
+                        <option value="work">🏢 Branch Office</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">GitHub URL (optional)</label>
+                    <input type="url" name="github_url" class="form-input" placeholder="https://github.com/...">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Mission Brief</label>
+                <textarea name="description" class="form-textarea" rows="2" placeholder="What does this operation involve?"></textarea>
+            </div>
+        </div>
+
+        <!-- Step 2: Agent -->
+        <div style="border-left: 3px solid var(--success); padding-left: 16px; margin-bottom: 20px;">
+            <div class="text-sm" style="font-weight: 600; color: var(--success); margin-bottom: 8px;">Step 2 — Agent Configuration</div>
+            <div class="flex gap-2">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Model</label>
+                    <select name="model" class="form-select">
+                        <option value="sonnet">Sonnet — Agent 86</option>
+                        <option value="opus">Opus — The Chief</option>
+                        <option value="haiku">Haiku — Larrabee</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Permission Mode</label>
+                    <select name="permission_mode" class="form-select">
+                        <option value="plan">Plan — 99's recommendation</option>
+                        <option value="auto">Auto — Wing it</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" name="start_agent" id="start-agent" checked>
+                <label for="start-agent">Deploy agent immediately after creation</label>
+            </div>
+        </div>
+
+        <!-- Step 3: Schedule -->
+        <div style="border-left: 3px solid var(--warning); padding-left: 16px; margin-bottom: 20px;">
+            <div class="text-sm" style="font-weight: 600; color: var(--warning); margin-bottom: 8px;">Step 3 — Scheduled Missions</div>
+            <div class="form-check mb-2">
+                <input type="checkbox" name="schedule_health" id="sched-health" checked>
+                <label for="sched-health">🏥 Daily health check at 6pm</label>
+            </div>
+            <div class="form-check mb-2">
+                <input type="checkbox" name="schedule_vuln" id="sched-vuln">
+                <label for="sched-vuln">🛡️ Weekly vulnerability scan (Sunday midnight)</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" name="sync_roadmap" id="sync-roadmap" checked>
+                <label for="sync-roadmap">📋 Sync roadmap (GitHub issues / ROADMAP.md)</label>
+            </div>
+        </div>
+
+        <!-- Step 4: Bots -->
+        <div style="border-left: 3px solid var(--text-muted); padding-left: 16px; margin-bottom: 20px;">
+            <div class="text-sm" style="font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">Step 4 — Communications (optional)</div>
+            <div class="form-group">
+                <label class="form-label">Discord Bot Token</label>
+                <input type="password" name="discord_token" class="form-input" placeholder="🔒 Leave blank to skip">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Telegram Bot Token</label>
+                <input type="password" name="telegram_token" class="form-input" placeholder="🔒 Leave blank to skip">
+            </div>
+        </div>
+
+        <div class="flex gap-2">
+            <button type="submit" class="btn btn-primary">&#x26A1; Deploy Full Operation</button>
+            <a href="{{ url_for('main.launchpad') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

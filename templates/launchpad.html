@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Operations Centre{% endblock %}
+{% block topbar_title %}CONTROL Operations Centre{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x1F575; Operations Centre</h1>
+    <div class="flex gap-2" style="flex-wrap: wrap;">
+        <button class="btn btn-secondary" id="scan-btn" onclick="scanProjects()">
+            &#x1F50E; Reconnaissance
+        </button>
+        <a href="{{ url_for('projects.create') }}" class="btn btn-secondary">
+            &#x1F680; New Project
+        </a>
+        <a href="{{ url_for('projects.quick_create') }}" class="btn btn-primary">
+            &#x26A1; Quick Deploy
+        </a>
+    </div>
+</div>
+<p class="text-sm text-muted mb-3">All registered projects under CONTROL's watch. Each card is a project with its own agent, bots, schedules, and health monitoring. Deploy agents, run checks, or open the mainframe terminal from any operation.</p>
+
+{% if projects %}
+<!-- Field Intelligence Controls — Sort, Filter, Search -->
+<div class="ops-controls" id="ops-controls">
+    <div class="ops-controls-row">
+        <div class="ops-search-wrap">
+            <span class="ops-search-icon">&#x1F50D;</span>
+            <input type="text" id="ops-search" class="form-input ops-search-input" placeholder="Search operatives..." oninput="OpsFilter.apply()">
+        </div>
+        <div class="ops-controls-group">
+            <select id="ops-sort" class="form-select ops-control-select" onchange="OpsFilter.apply()">
+                <option value="name-asc">&#x1F520; Name A&ndash;Z</option>
+                <option value="name-desc">&#x1F521; Name Z&ndash;A</option>
+                <option value="status">&#x1F6A6; By Status</option>
+                <option value="location">&#x1F4CD; By Field Office</option>
+                <option value="updated">&#x1F552; Recently Updated</option>
+            </select>
+            <select id="ops-filter-status" class="form-select ops-control-select" onchange="OpsFilter.apply()">
+                <option value="">All Statuses</option>
+                <option value="running">&#x1F7E2; In the Field</option>
+                <option value="stopped">&#x26AA; Standing By</option>
+                <option value="error">&#x1F534; Compromised</option>
+                <option value="no_agent">&#x1F6AB; No Agent</option>
+            </select>
+            <select id="ops-filter-location" class="form-select ops-control-select" onchange="OpsFilter.apply()">
+                <option value="">All Field Offices</option>
+                <option value="local">&#x1F3E0; Local HQ</option>
+                <option value="work">&#x1F3E2; Branch Office</option>
+            </select>
+            <button class="btn btn-secondary btn-sm ops-reset-btn" onclick="OpsFilter.reset()" title="Clear all filters">&#x1F504; Reset</button>
+        </div>
+    </div>
+    <div class="ops-results-summary" id="ops-results-summary"></div>
+</div>
+
+<!-- Multi-Launch Controls -->
+<form id="multi-launch-form" method="POST" action="{{ url_for('projects.multi_launch') }}">
+<div class="flex items-center justify-between mb-3" style="flex-wrap: wrap; gap: 8px;">
+    <div class="flex gap-2 items-center">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAllProjects()">&#x2611;&#xFE0F; Select All</button>
+        <input type="hidden" name="model" value="sonnet">
+    </div>
+    <div class="flex gap-2">
+        <button type="submit" name="action" value="start" class="btn btn-primary btn-sm">&#x1F680; Launch Selected</button>
+        <button type="submit" name="action" value="stop" class="btn btn-danger btn-sm">&#x1F4DE; Recall Selected</button>
+    </div>
+</div>
+<div class="project-grid" id="project-grid">
+    {% for project in projects %}
+    <div class="project-card"
+         data-project-id="{{ project.id }}"
+         data-href="{{ url_for('projects.detail', slug=project.slug) }}"
+         data-name="{{ project.name|lower }}"
+         data-status="{{ project.agent_status }}"
+         data-location="{{ project.location_type }}"
+         data-updated="{{ project.updated_at or project.created_at or '' }}"
+         onclick="handleCardClick(event, this)">
+        <div class="project-card-header">
+            <div class="flex items-center gap-2">
+                <label onclick="event.stopPropagation();" style="display:flex;align-items:center;cursor:pointer;">
+                    <input type="checkbox" name="project_ids" value="{{ project.id }}" onclick="event.stopPropagation();" onchange="handleCheckboxChange(this)" style="accent-color:var(--accent);width:16px;height:16px;">
+                </label>
+                <span class="project-card-title">{{ project.name }}</span>
+            </div>
+            <span class="status-badge {{ project.agent_status }}">
+                <span class="status-dot"></span>
+                {{ get_status_label(project.agent_status) }}
+            </span>
+        </div>
+        <div class="project-card-path" title="{{ project.path }}">{{ project.path }}</div>
+        {% if project.description %}
+        <div class="project-card-desc">{{ project.description }}</div>
+        {% endif %}
+        <div class="project-card-footer">
+            <div class="project-card-meta">
+                <span class="location-badge {{ project.location_type }}">
+                    {% if project.location_type == 'local' %}&#x1F3E0; Local{% else %}&#x1F3E2; Work{% endif %}
+                </span>
+                {% if project.github_url %}
+                <span class="text-xs text-muted">&#x1F4C1; CONTROL Files</span>
+                {% endif %}
+            </div>
+            <a href="{{ url_for('projects.detail', slug=project.slug) }}" class="btn btn-secondary btn-sm" onclick="event.stopPropagation();" style="font-size: 11px;">Open &#x2192;</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+</form>
+
+<!-- Empty filter state (hidden by default) -->
+<div id="ops-empty-filter" class="empty-state" style="display: none;">
+    <div class="empty-icon">&#x1F50D;</div>
+    <div class="empty-title">Would you believe... no results?</div>
+    <div class="empty-quote">"Missed it by that much." Try adjusting your filters, Chief.</div>
+    <button class="btn btn-secondary" onclick="OpsFilter.reset()">&#x1F504; Reset All Filters</button>
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">&#x1F4DE;</div>
+    <div class="empty-title">No agents in the field</div>
+    <div class="empty-quote">"{{ empty_quote }}"</div>
+    <a href="{{ url_for('projects.create') }}" class="btn btn-primary">
+        &#x1F680; Deploy Your First Agent
+    </a>
+    <div class="mt-3">
+        <button class="btn btn-secondary" onclick="scanProjects()">
+            &#x1F50E; Run reconnaissance on project directories
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- Reconnaissance Results -->
+<div id="scan-results" style="display: none;" class="mt-4">
+    <div class="detail-section">
+        <div class="detail-section-title">&#x1F4E1; Reconnaissance Results</div>
+        <div id="scan-results-content"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/launchpad.js') }}"></script>
+{% endblock %}

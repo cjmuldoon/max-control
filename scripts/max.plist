@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Max — CONTROL Headquarters Launch Agent
+  "Would you believe... automatic startup?"
+
+  Install: cp scripts/max.plist ~/Library/LaunchAgents/com.control.max.plist
+  Load:    launchctl load ~/Library/LaunchAgents/com.control.max.plist
+  Unload:  launchctl unload ~/Library/LaunchAgents/com.control.max.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.control.max</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>__VENV_PYTHON__</string>
+        <string>__PROJECT_DIR__/run.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__PROJECT_DIR__</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>__PROJECT_DIR__/logs/max.stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>__PROJECT_DIR__/logs/max.stderr.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+    </dict>
+</dict>
+</plist>

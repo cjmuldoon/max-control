@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Inbox{% endblock %}
+{% block topbar_title %}CONTROL Inbox{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x1F4EC; Inbox</h1>
+    <div class="flex gap-2">
+        <a href="{{ url_for('inbox.index', unread='1') }}" class="btn btn-secondary btn-sm {% if unread_only %}btn-primary{% endif %}">Unread ({{ unread_count }})</a>
+        <a href="{{ url_for('inbox.index') }}" class="btn btn-secondary btn-sm {% if not unread_only %}btn-primary{% endif %}">All</a>
+        <form method="POST" action="{{ url_for('inbox.mark_read') }}" style="display:inline;">
+            <input type="hidden" name="all" value="1">
+            <button type="submit" class="btn btn-secondary btn-sm">&#x2705; Mark All Read</button>
+        </form>
+    </div>
+</div>
+<p class="text-sm text-muted mb-3">Agent updates, task completions, questions, and summaries from all operations. Reply inline — agents and Discord channels receive your response.</p>
+
+{% if messages %}
+<div style="display: flex; flex-direction: column; gap: 6px;">
+    {% for msg in messages %}
+    <div class="detail-section" style="padding: 10px 14px; {% if not msg.read %}border-left: 3px solid var(--accent);{% endif %}">
+        <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+                {% if msg.is_agent %}
+                <img src="/static/img/{% if '99' in msg.author %}agent99{% else %}maxwell-smart{% endif %}.svg" style="width:16px;height:16px;border-radius:50%;">
+                {% else %}
+                <img src="/static/img/maxwell-smart.svg" style="width:16px;height:16px;border-radius:50%;">
+                {% endif %}
+                <strong class="text-sm">{{ msg.author }}</strong>
+                <span class="text-xs text-muted">on</span>
+                <span class="text-xs" style="color: var(--accent);">{{ msg.item_title[:50] }}</span>
+                <span class="location-badge local" style="font-size: 9px;">{{ msg.project_name }}</span>
+                {% if not msg.read %}
+                <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;" title="Unread"></span>
+                {% endif %}
+            </div>
+            <time class="text-xs text-muted" data-utc="{{ msg.created_at }}">{{ msg.created_at[:16] }}</time>
+        </div>
+        <div class="text-sm" style="white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto;">{{ msg.content }}</div>
+
+        <!-- Deploy actions if awaiting review -->
+        {% if msg.deploy_status == 'awaiting_review' %}
+        <div class="flex gap-2 mt-2 items-center" style="padding: 6px 0; border-top: 1px solid var(--border);">
+            <span class="text-xs" style="color: var(--warning);">&#x1F4E6; Awaiting your approval</span>
+            <a href="{{ url_for('feedback.diff', item_id=msg.item_id) }}" class="btn btn-secondary btn-sm" style="font-size: 11px;">&#x1F50D; Diff</a>
+            <form method="POST" action="{{ url_for('feedback.deploy', item_id=msg.item_id) }}" style="display:inline;" onsubmit="return confirm('Deploy to production?');">
+                <button type="submit" class="btn btn-primary btn-sm" style="font-size: 11px;">&#x2705; Deploy</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Reply -->
+        <form method="POST" action="{{ url_for('inbox.reply') }}" class="flex gap-2 mt-2">
+            <input type="hidden" name="item_id" value="{{ msg.item_id }}">
+            <input type="text" name="content" class="form-input" placeholder="Reply to {{ msg.author }}..." style="flex: 1; font-size: 12px; padding: 5px 10px;">
+            <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 11px;">Reply</button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">&#x1F4EC;</div>
+    <div class="empty-title">{% if unread_only %}No unread messages{% else %}Inbox empty{% endif %}</div>
+    <div class="empty-quote">"{{ smart_quote('empty') }}"</div>
+</div>
+{% endif %}
+{% endblock %}

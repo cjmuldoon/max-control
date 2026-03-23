@@ -1,0 +1,30 @@
+/* Soft Theme — CONTROL Headquarters (light blues & greys) */
+:root[data-theme="soft"] {
+    --bg-primary: #EDF2F7;
+    --bg-secondary: #E2E8F0;
+    --bg-tertiary: #CBD5E1;
+    --bg-elevated: #F7FAFC;
+
+    --text-primary: #2D3748;
+    --text-secondary: #4A5568;
+    --text-muted: #718096;
+
+    --accent: #E8734A;
+    --accent-hover: #F28B67;
+    --accent-muted: rgba(232, 115, 74, 0.12);
+
+    --border: #CBD5E1;
+    --border-subtle: #E2E8F0;
+
+    --success: #38A169;
+    --warning: #D69E2E;
+    --error: #E53E3E;
+    --info: #4299E1;
+
+    --terminal-bg: #EDF2F7;
+    --terminal-fg: #2D3748;
+
+    --accent-corner-glow: rgba(232, 115, 74, 0.08);
+
+    color-scheme: light;
+}

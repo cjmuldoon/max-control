@@ -1,0 +1,30 @@
+/* Dark Theme — CONTROL Night Operations */
+:root[data-theme="dark"] {
+    --bg-primary: #0D1117;
+    --bg-secondary: #161B22;
+    --bg-tertiary: #21262D;
+    --bg-elevated: #1C2128;
+
+    --text-primary: #E6EDF3;
+    --text-secondary: #8B949E;
+    --text-muted: #6E7681;
+
+    --accent: #E8734A;
+    --accent-hover: #F28B67;
+    --accent-muted: rgba(232, 115, 74, 0.15);
+
+    --border: #30363D;
+    --border-subtle: #21262D;
+
+    --success: #3FB950;
+    --warning: #D29922;
+    --error: #F85149;
+    --info: #58A6FF;
+
+    --terminal-bg: #0D1117;
+    --terminal-fg: #E6EDF3;
+
+    --accent-corner-glow: rgba(232, 115, 74, 0.09);
+
+    color-scheme: dark;
+}

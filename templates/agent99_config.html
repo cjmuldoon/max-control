@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Agent 99 — Comms Config{% endblock %}
+{% block topbar_title %}Agent 99 — Direct Line Configuration{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x1F469; Agent 99 — Direct Line</h1>
+    <a href="{{ url_for('agent99_config.log') }}" class="btn btn-secondary">&#x1F4DC; View Field Log</a>
+</div>
+<p class="text-sm text-muted mb-3">Connect 99 to Discord or Telegram so you can talk to her from anywhere — even when your laptop is closed. Messages go directly to 99's brain, not to a project agent.</p>
+
+<div class="detail-grid">
+    <!-- Discord -->
+    <div class="detail-section">
+        <div class="detail-section-title">&#x1F3AE; Discord — 99's Shoe Phone</div>
+
+        {% if discord_running %}
+        <div class="flex items-center gap-2 mb-3">
+            <span class="status-badge running"><span class="status-dot"></span> 99 is on Discord</span>
+        </div>
+        {% else %}
+        <div class="flex items-center gap-2 mb-3">
+            <span class="status-badge stopped"><span class="status-dot"></span> Offline</span>
+        </div>
+        {% endif %}
+
+        {% if config.discord.get('token') %}
+        <p class="text-xs text-muted mb-3">Token configured: {{ config.discord.token[:15] }}...
+            {% if config.discord.get('channel_id') %} | Channel: {{ config.discord.channel_id }}{% endif %}
+        </p>
+        <div class="flex gap-2 mb-3">
+            <form method="POST" action="{{ url_for('agent99_config.toggle_discord') }}">
+                {% if discord_running %}
+                <button type="submit" class="btn btn-danger btn-sm">&#x23F9; Disconnect 99</button>
+                {% else %}
+                <button type="submit" class="btn btn-primary btn-sm">&#x1F4DE; Connect 99</button>
+                {% endif %}
+            </form>
+        </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('agent99_config.configure_discord') }}">
+            <div class="form-group" style="margin-bottom: 8px;">
+                <input type="password" name="token" class="form-input" placeholder="&#x1F512; Bot token — Cone of Silence" value="{{ config.discord.get('token', '') }}" style="font-size: 12px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 8px;">
+                <input type="text" name="channel_id" class="form-input" placeholder="Channel ID (optional — listen on all channels)" value="{{ config.discord.get('channel_id', '') }}" style="font-size: 12px;">
+            </div>
+            <button type="submit" class="btn btn-secondary btn-sm">&#x2699; Save Config</button>
+        </form>
+    </div>
+
+    <!-- Telegram -->
+    <div class="detail-section">
+        <div class="detail-section-title">&#x2708; Telegram — 99's Secure Channel</div>
+
+        {% if telegram_running %}
+        <div class="flex items-center gap-2 mb-3">
+            <span class="status-badge running"><span class="status-dot"></span> 99 is on Telegram</span>
+        </div>
+        {% else %}
+        <div class="flex items-center gap-2 mb-3">
+            <span class="status-badge stopped"><span class="status-dot"></span> Offline</span>
+        </div>
+        {% endif %}
+
+        {% if config.telegram.get('token') %}
+        <p class="text-xs text-muted mb-3">Token configured: {{ config.telegram.token[:15] }}...
+            {% if config.telegram.get('chat_id') %} | Chat: {{ config.telegram.chat_id }}{% endif %}
+        </p>
+        <div class="flex gap-2 mb-3">
+            <form method="POST" action="{{ url_for('agent99_config.toggle_telegram') }}">
+                {% if telegram_running %}
+                <button type="submit" class="btn btn-danger btn-sm">&#x23F9; Disconnect 99</button>
+                {% else %}
+                <button type="submit" class="btn btn-primary btn-sm">&#x1F4DE; Connect 99</button>
+                {% endif %}
+            </form>
+        </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('agent99_config.configure_telegram') }}">
+            <div class="form-group" style="margin-bottom: 8px;">
+                <input type="password" name="token" class="form-input" placeholder="&#x1F512; Bot token — Cone of Silence" value="{{ config.telegram.get('token', '') }}" style="font-size: 12px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 8px;">
+                <input type="text" name="chat_id" class="form-input" placeholder="Chat ID (send /start to bot to get it)" value="{{ config.telegram.get('chat_id', '') }}" style="font-size: 12px;">
+            </div>
+            <button type="submit" class="btn btn-secondary btn-sm">&#x2699; Save Config</button>
+        </form>
+    </div>
+
+    <!-- How it works -->
+    <div class="detail-section full-width">
+        <div class="detail-section-title">&#x1F4A1; How This Works</div>
+        <div class="text-sm text-muted" style="column-count: 2; column-gap: 24px;">
+            <p class="mb-2">This is <strong>different from project bots</strong> (configured on the Shoe Phone page). Project bots route messages to a project's field agent. These bots connect <strong>directly to Agent 99</strong>.</p>
+            <p class="mb-2">99 has access to all CONTROL operations — she can check project status, run health checks, schedule missions, analyse code, and answer questions.</p>
+            <p class="mb-2">Messages from Discord/Telegram go to 99, she processes them with full tool access, and sends her response back to the chat.</p>
+            <p class="mb-2">Use this when you want to talk to 99 from your phone, while away from your desk, or when the laptop is off (if Max is running on the VPS).</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

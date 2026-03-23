@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Emergency Protocols{% endblock %}
+{% block topbar_title %}Emergency Protocols{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x1F4BE; Emergency Protocols</h1>
+</div>
+<p class="text-sm text-muted mb-3">Backup and restore the CONTROL database. Each backup captures all projects, tasks, schedules, and bot configurations. A safety backup is automatically created before any restore.</p>
+
+<!-- Create Backup -->
+<div class="detail-section mb-4">
+    <div class="detail-section-title">&#x2795; Create Backup</div>
+    <form method="POST" action="{{ url_for('backup.create') }}" class="flex gap-2 items-center">
+        <input type="text" name="label" class="form-input" placeholder="Optional label (e.g. before-big-change)" style="width: 300px;">
+        <button type="submit" class="btn btn-primary">&#x1F4BE; Create Snapshot</button>
+    </form>
+</div>
+
+<!-- Existing Backups -->
+{% if backups %}
+<div class="detail-section">
+    <div class="detail-section-title">&#x1F4C2; Available Backups</div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+        {% for backup in backups %}
+        <div class="flex items-center justify-between" style="padding: 10px; background: var(--bg-primary); border-radius: 8px;">
+            <div>
+                <div class="text-sm mono" style="font-weight: 500;">{{ backup.name }}</div>
+                <div class="text-xs text-muted">{{ backup.size_kb }} KB · {{ backup.modified }}</div>
+            </div>
+            <div class="flex gap-2">
+                <form method="POST" action="{{ url_for('backup.restore', backup_name=backup.name) }}" onsubmit="return confirm('{{ smart_quote('confirm') }} This will replace the current database. A safety backup will be created first.');">
+                    <button type="submit" class="btn btn-secondary btn-sm">&#x1F504; Restore</button>
+                </form>
+                <form method="POST" action="{{ url_for('backup.delete', backup_name=backup.name) }}" onsubmit="return confirm('Delete this backup permanently?');">
+                    <button type="submit" class="btn btn-danger btn-sm">&#x1F5D1;</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">&#x1F4BE;</div>
+    <div class="empty-title">No backups yet</div>
+    <div class="empty-quote">"{{ smart_quote('empty') }}"</div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,11 @@
+flask>=3.1
+flask-socketio>=5.4
+eventlet>=0.37
+discord.py>=2.4
+python-telegram-bot>=21
+apscheduler>=3.11
+pexpect>=4.9
+psycopg2-binary>=2.9
+paramiko>=3.5
+rumps>=0.4
+cryptography>=44

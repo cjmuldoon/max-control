@@ -1,0 +1,30 @@
+/* Light Theme — CONTROL Daylight Operations */
+:root[data-theme="light"] {
+    --bg-primary: #FFFFFF;
+    --bg-secondary: #F6F8FA;
+    --bg-tertiary: #EAEEF2;
+    --bg-elevated: #FFFFFF;
+
+    --text-primary: #1F2328;
+    --text-secondary: #656D76;
+    --text-muted: #9CA3AF;
+
+    --accent: #E8734A;
+    --accent-hover: #D4623B;
+    --accent-muted: rgba(232, 115, 74, 0.1);
+
+    --border: #D0D7DE;
+    --border-subtle: #EAEEF2;
+
+    --success: #1A7F37;
+    --warning: #BF8700;
+    --error: #CF222E;
+    --info: #0969DA;
+
+    --terminal-bg: #FAFBFC;
+    --terminal-fg: #1F2328;
+
+    --accent-corner-glow: rgba(232, 115, 74, 0.07);
+
+    color-scheme: light;
+}

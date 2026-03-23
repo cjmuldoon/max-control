@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Deploy New Agent{% endblock %}
+{% block topbar_title %}Deploy New Field Agent{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x1F575; Deploy New Field Agent</h1>
+</div>
+
+<div class="detail-section" style="max-width: 640px;">
+    <div class="detail-section-title">&#x1F4CB; Mission Parameters</div>
+    <form method="POST" action="{{ url_for('projects.create') }}">
+        <div class="form-group">
+            <label class="form-label">Operation Codename</label>
+            <input type="text" name="name" class="form-input" placeholder="e.g. Operation Sunbeam Tiger" required>
+            <div class="form-hint">Choose wisely, Agent. This is how CONTROL will track this operation.</div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Field Office</label>
+            <select name="location_type" class="form-select" id="location-type">
+                <option value="local">🏠 Local HQ — {{ locations.get('local', '') }}</option>
+                <option value="work">🏢 Branch Office — {{ locations.get('work', '') }}</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <div class="form-check">
+                <input type="checkbox" name="use_existing" id="use-existing" onchange="toggleExistingPath()">
+                <label for="use-existing">Use an existing safe house (existing directory)</label>
+            </div>
+        </div>
+
+        <div class="form-group" id="existing-path-group" style="display: none;">
+            <label class="form-label">Safe House Location</label>
+            <input type="text" name="existing_path" class="form-input mono" placeholder="/path/to/existing/project">
+            <div class="form-hint">Full path to the existing operation directory</div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Mission Brief</label>
+            <textarea name="description" class="form-textarea" placeholder="Brief the Chief — what does this operation involve?"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">CONTROL File Reference (GitHub URL)</label>
+            <input type="url" name="github_url" class="form-input" placeholder="https://github.com/user/repo">
+            <div class="form-hint">Link to the classified files repository</div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Intelligence Dossier (Notion Page ID)</label>
+            <input type="text" name="notion_page_id" class="form-input" placeholder="abc123...">
+            <div class="form-hint">Cross-reference with CONTROL's intelligence database</div>
+        </div>
+
+        <div class="flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">&#x1F680; Deploy Agent to the Field</button>
+            <a href="{{ url_for('main.launchpad') }}" class="btn btn-secondary">Abort Mission</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleExistingPath() {
+    const checkbox = document.getElementById('use-existing');
+    const pathGroup = document.getElementById('existing-path-group');
+    const locationSelect = document.getElementById('location-type');
+
+    pathGroup.style.display = checkbox.checked ? 'block' : 'none';
+    locationSelect.disabled = checkbox.checked;
+}
+</script>
+{% endblock %}

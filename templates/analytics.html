@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Intel Reports{% endblock %}
+{% block topbar_title %}CONTROL Intelligence Division{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x1F4CA; Intel Reports</h1>
+</div>
+<p class="text-sm text-muted mb-3">Operations analytics, agent activity trends, and performance metrics across all CONTROL projects.</p>
+
+<!-- Top Stats -->
+<div class="project-grid" style="grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); margin-bottom: 16px; gap: 8px;">
+    <div class="detail-section" style="text-align: center; padding: 10px;">
+        <div style="font-size: 20px; font-weight: 700; color: var(--accent);">{{ data.total_tasks }}</div>
+        <div class="text-xs text-muted">Total Missions</div>
+    </div>
+    <div class="detail-section" style="text-align: center; padding: 10px;">
+        <div style="font-size: 20px; font-weight: 700; color: var(--success);">{{ data.completed_tasks }}</div>
+        <div class="text-xs text-muted">Completed</div>
+    </div>
+    <div class="detail-section" style="text-align: center; padding: 10px;">
+        <div style="font-size: 20px; font-weight: 700; color: var(--warning);">{{ data.open_tasks }}</div>
+        <div class="text-xs text-muted">Open</div>
+    </div>
+    <div class="detail-section" style="text-align: center; padding: 10px;">
+        <div style="font-size: 20px; font-weight: 700; color: var(--text-primary);">{{ data.total_projects }}</div>
+        <div class="text-xs text-muted">Projects</div>
+    </div>
+    <div class="detail-section" style="text-align: center; padding: 10px;">
+        <div style="font-size: 20px; font-weight: 700; color: var(--info, var(--accent));">{{ data.total_comments }}</div>
+        <div class="text-xs text-muted">Agent Updates</div>
+    </div>
+    <div class="detail-section" style="text-align: center; padding: 10px;">
+        <div style="font-size: 20px; font-weight: 700; color: var(--text-secondary);">{{ data.total_events }}</div>
+        <div class="text-xs text-muted">Events Tracked</div>
+    </div>
+</div>
+
+<div class="detail-grid" style="gap: 14px;">
+    <!-- 7-Day Activity Trend -->
+    <div class="detail-section full-width" style="padding: 14px;">
+        <div class="detail-section-title" style="margin-bottom: 10px;">&#x1F4C8; 7-Day Activity</div>
+        <div style="height: 180px;">
+            <canvas id="activity-chart"></canvas>
+        </div>
+    </div>
+
+    <!-- Tasks by Status -->
+    <div class="detail-section" style="padding: 14px;">
+        <div class="detail-section-title" style="margin-bottom: 10px;">&#x1F4CA; Mission Status</div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 160px; flex-shrink: 0;">
+                <canvas id="status-chart"></canvas>
+            </div>
+            <div id="status-legend" style="font-size: 12px; line-height: 2;"></div>
+        </div>
+    </div>
+
+    <!-- Tasks by Project -->
+    <div class="detail-section" style="padding: 14px;">
+        <div class="detail-section-title" style="margin-bottom: 10px;">&#x1F575; By Project</div>
+        <div style="height: 150px;">
+            <canvas id="project-chart"></canvas>
+        </div>
+    </div>
+
+    <!-- Tasks by Category -->
+    <div class="detail-section" style="padding: 14px;">
+        <div class="detail-section-title" style="margin-bottom: 10px;">&#x1F4CB; By Category</div>
+        <div style="height: 150px;">
+            <canvas id="category-chart"></canvas>
+        </div>
+    </div>
+
+    <!-- Model Usage -->
+    <div class="detail-section" style="padding: 14px;">
+        <div class="detail-section-title" style="margin-bottom: 10px;">&#x1F916; Model Usage</div>
+        {% if data.model_usage %}
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 140px; flex-shrink: 0;">
+                <canvas id="model-chart"></canvas>
+            </div>
+            <div style="font-size: 12px; line-height: 2;">
+                {% for model, count in data.model_usage.items() %}
+                <div>{{ model }}: <strong>{{ count }}</strong></div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <p class="text-sm text-muted">No model data yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- Recent Audit -->
+    <div class="detail-section full-width" style="padding: 14px;">
+        <div class="flex items-center justify-between">
+            <div class="detail-section-title" style="margin-bottom: 0;">&#x1F4DC; Recent Activity</div>
+            <a href="{{ url_for('audit.index') }}" class="text-xs" style="color: var(--accent);">View all →</a>
+        </div>
+        {% if data.recent_audit %}
+        <div class="mt-2" style="max-height: 200px; overflow-y: auto;">
+            {% for entry in data.recent_audit[:10] %}
+            <div style="padding: 4px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; font-size: 11px;">
+                <span class="text-muted mono" style="width: 50px;">{{ entry.timestamp[11:16] }}</span>
+                <span style="color: var(--accent); width: 60px;">{{ entry.actor }}</span>
+                <span style="width: 100px;">{{ entry.action }}</span>
+                <span class="text-muted" style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ entry.detail or '' }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-muted mt-2">No activity recorded yet. Actions will appear here as agents work.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const style = getComputedStyle(document.documentElement);
+    const accent = style.getPropertyValue('--accent').trim();
+    const success = style.getPropertyValue('--success').trim();
+    const warning = style.getPropertyValue('--warning').trim();
+    const error = style.getPropertyValue('--error').trim();
+    const textColor = style.getPropertyValue('--text-secondary').trim();
+
+    // 7-Day Activity
+    const daily = {{ data.daily_activity | tojson }};
+    new Chart(document.getElementById('activity-chart'), {
+        type: 'line',
+        data: {
+            labels: daily.map(d => d.label),
+            datasets: [
+                { label: 'Tasks Done', data: daily.map(d => d.tasks_completed), borderColor: success, backgroundColor: 'transparent', tension: 0.3, borderWidth: 2 },
+                { label: 'Agent Updates', data: daily.map(d => d.comments), borderColor: accent, backgroundColor: 'transparent', tension: 0.3, borderWidth: 2 },
+                { label: 'Events', data: daily.map(d => d.events), borderColor: textColor, backgroundColor: 'transparent', tension: 0.3, borderWidth: 1, borderDash: [4, 4] },
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { color: textColor, font: { size: 10 }, padding: 8 } } },
+            scales: {
+                x: { ticks: { color: textColor, font: { size: 10 } }, grid: { display: false } },
+                y: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: 'rgba(128,128,128,0.1)' }, beginAtZero: true },
+            }
+        }
+    });
+
+    // Status doughnut
+    const statusData = {{ data.tasks_by_status | tojson }};
+    const statusLabels = Object.keys(statusData).map(s => s.replace('_', ' '));
+    const statusValues = Object.values(statusData);
+    const statusColors = Object.keys(statusData).map(s => {
+        return { completed: success, open: warning, planned: '#58A6FF', in_progress: accent, declined: error, under_review: '#D29922' }[s] || textColor;
+    });
+
+    new Chart(document.getElementById('status-chart'), {
+        type: 'doughnut',
+        data: { labels: statusLabels, datasets: [{ data: statusValues, backgroundColor: statusColors, borderWidth: 0 }] },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    document.getElementById('status-legend').innerHTML = statusLabels.map((l, i) =>
+        `<div style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:2px;background:${statusColors[i]};display:inline-block;"></span>${l}: <strong>${statusValues[i]}</strong></div>`
+    ).join('');
+
+    // By Project
+    const projData = {{ data.tasks_by_project | tojson }};
+    new Chart(document.getElementById('project-chart'), {
+        type: 'bar',
+        data: { labels: Object.keys(projData), datasets: [{ data: Object.values(projData), backgroundColor: accent, borderRadius: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: { x: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: 'rgba(128,128,128,0.1)' } },
+                      y: { ticks: { color: textColor, font: { size: 10 } }, grid: { display: false } } }
+        }
+    });
+
+    // By Category
+    const catData = {{ data.tasks_by_category | tojson }};
+    const catLabels = { bug_report: '🐛 Bug', feature_request: '✨ Feature', improvement: '💡 Improve', new_tool: '🔧 Tool', task: '📌 Task', integration: '🔗 Integration' };
+    new Chart(document.getElementById('category-chart'), {
+        type: 'bar',
+        data: { labels: Object.keys(catData).map(k => catLabels[k] || k), datasets: [{ data: Object.values(catData), backgroundColor: accent, borderRadius: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: { x: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: 'rgba(128,128,128,0.1)' } },
+                      y: { ticks: { color: textColor, font: { size: 10 } }, grid: { display: false } } }
+        }
+    });
+
+    // Model usage
+    const modelEl = document.getElementById('model-chart');
+    if (modelEl) {
+        const modelData = {{ data.model_usage | tojson }};
+        new Chart(modelEl, {
+            type: 'doughnut',
+            data: { labels: Object.keys(modelData), datasets: [{ data: Object.values(modelData), backgroundColor: [accent, success, warning, '#58A6FF'], borderWidth: 0 }] },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+    }
+});
+</script>
+{% endblock %}

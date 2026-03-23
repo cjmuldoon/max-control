@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration{% endblock %}
+{% block topbar_title %}CONTROL Configuration{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x2699; CONTROL Configuration</h1>
+</div>
+
+<div class="detail-grid">
+    <div class="detail-section">
+        <div class="detail-section-title">&#x1F3E2; Field Offices</div>
+        <div class="text-sm">
+            <p class="mb-3"><strong>🏠 Local HQ:</strong></p>
+            <p class="mono text-muted mb-3" style="font-size: 12px;">~/Projects_Local/</p>
+            <p class="mb-3"><strong>🏢 Branch Office:</strong></p>
+            <p class="mono text-muted" style="font-size: 12px;">~/Library/CloudStorage/OneDrive-Ventia/Documents/Projects/</p>
+        </div>
+    </div>
+
+    <div class="detail-section">
+        <div class="detail-section-title">&#x1F916; Agent Defaults</div>
+        <div class="text-sm">
+            <p class="mb-2"><strong>Default Model:</strong> Sonnet (Agent 86 — reliable, fast)</p>
+            <p class="mb-2"><strong>Permission Mode:</strong> Plan (Agent 99 recommends caution)</p>
+            <p class="mb-2"><strong>CLI Path:</strong> <span class="mono text-muted">~/.local/bin/claude</span></p>
+        </div>
+    </div>
+
+    <div class="detail-section">
+        <div class="detail-section-title">&#x1F4BB; CONTROL Mainframe</div>
+        <div class="text-sm">
+            <p class="mb-2"><strong>Server:</strong> http://localhost:8086</p>
+            <p class="mb-2"><strong>Port:</strong> 8086 (Agent 86's direct line)</p>
+            <p class="mb-2"><strong>Status:</strong> <span class="text-success">Operational</span></p>
+        </div>
+    </div>
+
+    <div class="detail-section">
+        <div class="detail-section-title">&#x1F680; Startup</div>
+        <div class="text-sm">
+            <p class="mb-3">Launch CONTROL on login:</p>
+            <code class="mono text-muted" style="font-size: 12px; display: block; padding: 8px; background: var(--bg-primary); border-radius: 6px;">
+                python setup_startup.py
+            </code>
+            <p class="text-xs text-muted mt-2" style="font-style: italic;">"The old 'launch on boot' trick."</p>
+        </div>
+    </div>
+
+    <div class="detail-section">
+        <div class="detail-section-title">&#x1F3A8; Themes</div>
+        <div class="text-sm">
+            <p class="mb-2">🌙 <strong>Dark</strong> — Night Operations</p>
+            <p class="mb-2">☀️ <strong>Light</strong> — Daylight Operations</p>
+            <p class="mb-2">🌊 <strong>Soft</strong> — CONTROL Headquarters</p>
+            <p class="text-xs text-muted mt-3">Accent colour: <span style="color: var(--accent); font-weight: 600;">#E8734A</span> — CONTROL orange</p>
+        </div>
+    </div>
+
+    <div class="detail-section">
+        <div class="detail-section-title">&#x1F4DE; Communications</div>
+        <div class="text-sm">
+            <p class="mb-2"><strong>Discord:</strong> Shoe Phone network</p>
+            <p class="mb-2"><strong>Telegram:</strong> Agent 99's secure channel</p>
+            <p class="text-xs text-muted mt-3" style="font-style: italic;">
+                "Would you believe... military-grade encryption on both channels?"
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <div class="detail-section full-width">
+        <div class="detail-section-title" style="color: var(--text-muted);">&#x1F4AC; Coming Soon</div>
+        <div class="text-sm text-muted" style="column-count: 2; column-gap: 24px;">
+            <p class="mb-2">🏥 CONTROL Medical — Health checks</p>
+            <p class="mb-2">🛡️ Counter-KAOS — Vulnerability scanning</p>
+            <p class="mb-2">📋 Mission Briefings — Task approval</p>
+            <p class="mb-2">📊 Intel Reports — Analytics dashboard</p>
+            <p class="mb-2">🏋️ Training Ground — Regression environments</p>
+            <p class="mb-2">🌐 Remote Ops — VPS agent coordination</p>
+            <p class="mb-2">💾 Emergency Protocols — Backup & restore</p>
+            <p class="mb-2">📅 Mission Schedule — Cron management</p>
+        </div>
+        <p class="text-xs text-muted mt-3" style="font-style: italic;">
+            "Would you believe... all of these features in one app? Would you believe... half of them?"
+        </p>
+    </div>
+</div>
+{% endblock %}

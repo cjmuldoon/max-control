@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Agent 99 — The competent one -->
+  <!-- Hair -->
+  <path d="M12 28C12 16 20 6 32 6C44 6 52 16 52 28L52 34C52 34 50 30 48 32C48 32 50 24 48 18C46 12 40 8 32 8C24 8 18 12 16 18C14 24 16 32 16 32C14 30 12 34 12 34L12 28Z" fill="#4A3728"/>
+  <!-- Face -->
+  <ellipse cx="32" cy="30" rx="16" ry="18" fill="#F5D0A9"/>
+  <!-- Hair sides -->
+  <path d="M14 28C14 28 13 38 15 42C15 42 16 34 16 30" fill="#4A3728"/>
+  <path d="M50 28C50 28 51 38 49 42C49 42 48 34 48 30" fill="#4A3728"/>
+  <!-- Eyes -->
+  <ellipse cx="26" cy="28" rx="2.5" ry="3" fill="#2D5A27"/>
+  <ellipse cx="38" cy="28" rx="2.5" ry="3" fill="#2D5A27"/>
+  <circle cx="25.5" cy="27.5" r="1" fill="white"/>
+  <circle cx="37.5" cy="27.5" r="1" fill="white"/>
+  <!-- Eyebrows -->
+  <path d="M22 24C23 22.5 26 22 28.5 23" stroke="#4A3728" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <path d="M42 24C41 22.5 38 22 35.5 23" stroke="#4A3728" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <!-- Nose -->
+  <path d="M32 30L30.5 34L33.5 34Z" fill="#E8B888" opacity="0.6"/>
+  <!-- Smile -->
+  <path d="M27 37C29 39.5 35 39.5 37 37" stroke="#C4956A" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <!-- Neck -->
+  <rect x="28" y="46" width="8" height="6" rx="2" fill="#F5D0A9"/>
+  <!-- Blazer / outfit -->
+  <path d="M18 58C18 52 24 48 32 48C40 48 46 52 46 58L46 64L18 64Z" fill="#E8734A"/>
+  <!-- Collar -->
+  <path d="M28 48L32 54L36 48" stroke="white" stroke-width="1.5" fill="none"/>
+  <!-- Hair over forehead -->
+  <path d="M18 22C20 16 26 10 32 10C38 10 42 13 44 18C44 18 40 14 32 14C24 14 20 18 18 22Z" fill="#4A3728"/>
+</svg>

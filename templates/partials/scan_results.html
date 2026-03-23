@@ -1,0 +1,137 @@
+<!-- Reconnaissance Results — "Agent 86 is surveilling the area." -->
+
+{% macro render_item(project) %}
+<div class="recon-item flex items-center justify-between" style="padding: 10px; background: var(--bg-primary); border-radius: 8px; {% if project.is_undercover %}opacity: 0.5;{% endif %}">
+    <div class="flex items-center gap-2" style="flex: 1; min-width: 0;">
+        <input type="checkbox" class="recon-check" value="{{ project.path }}" style="accent-color: var(--accent); flex-shrink: 0;">
+        <div style="min-width: 0;">
+            <div class="text-sm flex items-center gap-2" style="flex-wrap: wrap;">
+                <strong style="white-space: nowrap;">{{ project.name }}</strong>
+                {% if project.is_undercover %}
+                <span class="text-xs" style="color: var(--text-muted);" title="Undercover">🕶️</span>
+                {% endif %}
+                {% if project.has_git %}
+                <span class="text-xs" style="color: var(--success);">📁 Git</span>
+                {% endif %}
+                {% if project.has_readme %}
+                <span class="text-xs" style="color: var(--accent);">📝</span>
+                {% endif %}
+                <span class="text-xs text-muted">{{ project.modified_str }}</span>
+                <span class="text-xs text-muted">{{ project.size_str }}</span>
+            </div>
+            <div class="text-xs mono text-muted" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ project.path }}</div>
+        </div>
+    </div>
+    <div class="flex gap-2 items-center" style="flex-shrink: 0; margin-left: 8px;">
+        <span class="location-badge {{ project.location_type }}">
+            {% if project.location_type == 'local' %}🏠{% else %}🏢{% endif %}
+        </span>
+        {% if project.is_undercover %}
+        <button type="button" class="btn btn-secondary btn-sm" onclick="revealUndercover(['{{ project.path }}'])" style="font-size: 11px;">Reveal</button>
+        {% else %}
+        <form method="POST" action="{{ url_for('projects.create') }}" style="display: inline;">
+            <input type="hidden" name="name" value="{{ project.name }}">
+            <input type="hidden" name="use_existing" value="on">
+            <input type="hidden" name="existing_path" value="{{ project.path }}">
+            <input type="hidden" name="location_type" value="{{ project.location_type }}">
+            <button type="submit" class="btn btn-primary btn-sm" style="font-size: 11px;">🚀 Recruit</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+<!-- Summary & Bulk Actions -->
+<div class="flex items-center justify-between mb-3" style="flex-wrap: wrap; gap: 8px;">
+    <div class="text-sm text-muted">
+        <strong>{{ discovered | length }}</strong> targets found
+        {% if search_query %} matching "<strong>{{ search_query }}</strong>"{% endif %}
+        {% if undercover_count and not show_undercover %}
+        · <span class="text-xs">🕶️ {{ undercover_count }} undercover</span>
+        {% endif %}
+    </div>
+    <div class="flex gap-2 items-center" style="flex-wrap: wrap;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="selectAllRecon()" style="font-size: 11px;">☑️ Select All</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="hideSelectedUndercover()" style="font-size: 11px;">🕶️ Send Undercover</button>
+        {% if show_undercover %}
+        <button type="button" class="btn btn-secondary btn-sm" onclick="revealAllSelected()" style="font-size: 11px;">👁️ Reveal Selected</button>
+        {% endif %}
+    </div>
+</div>
+
+{% if discovered %}
+    {% if groups %}
+        <!-- Time-grouped view (default) -->
+        {% for group in groups %}
+        <div class="mb-3">
+            <div class="text-xs text-muted" style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 0; margin-bottom: 6px; border-bottom: 1px solid var(--border);">
+                {{ group.label }} <span style="font-weight: 400;">({{ group.entries | length }})</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                {% for project in group.entries %}
+                {{ render_item(project) }}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <!-- Flat list (name/size sort) -->
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+            {% for project in discovered %}
+            {{ render_item(project) }}
+            {% endfor %}
+        </div>
+    {% endif %}
+{% else %}
+<p class="text-sm text-muted" style="padding: 12px 0;">
+    {% if search_query %}
+    No targets matching "{{ search_query }}". "Missed it by that much!"
+    {% else %}
+    All directories already registered with CONTROL. "And loving it!"
+    {% endif %}
+</p>
+{% endif %}
+
+<script>
+function selectAllRecon() {
+    const checks = document.querySelectorAll('.recon-check');
+    const allChecked = Array.from(checks).every(c => c.checked);
+    checks.forEach(c => c.checked = !allChecked);
+}
+
+function getSelectedPaths() {
+    return Array.from(document.querySelectorAll('.recon-check:checked')).map(c => c.value);
+}
+
+async function hideSelectedUndercover() {
+    const paths = getSelectedPaths();
+    if (paths.length === 0) { alert('Select targets to send undercover first, Chief.'); return; }
+    if (!confirm(`Send ${paths.length} target(s) undercover? They won't appear in future reconnaissance.`)) return;
+
+    const form = new FormData();
+    paths.forEach(p => form.append('paths', p));
+    form.append('action', 'hide');
+
+    const resp = await fetch('/projects/undercover', { method: 'POST', body: form });
+    const data = await resp.json();
+    if (data.message) {
+        // Refresh recon results
+        filterRecon();
+    }
+}
+
+async function revealUndercover(paths) {
+    const form = new FormData();
+    paths.forEach(p => form.append('paths', p));
+    form.append('action', 'reveal');
+
+    await fetch('/projects/undercover', { method: 'POST', body: form });
+    filterRecon();
+}
+
+async function revealAllSelected() {
+    const paths = getSelectedPaths();
+    if (paths.length === 0) { alert('Select targets to reveal first, Chief.'); return; }
+    await revealUndercover(paths);
+}
+</script>

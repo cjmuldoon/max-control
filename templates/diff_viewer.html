@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Code Review{% endblock %}
+{% block topbar_title %}Code Review — Agent Changes{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x1F50D; Code Review</h1>
+    <div class="flex gap-2">
+        <a href="{{ url_for('feedback.index') }}" class="btn btn-secondary btn-sm">&#x2190; Back to Register</a>
+        {% if diff and diff.branch %}
+        <form method="POST" action="{{ url_for('feedback.deploy', item_id=item_id) }}" style="display:inline;"
+              onsubmit="return confirm('Deploy this to production? This will merge to main and push.');">
+            <button type="submit" class="btn btn-primary btn-sm">&#x1F680; Approve & Deploy</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+{% if diff and not diff.error %}
+<p class="text-sm text-muted mb-3">Branch: <code class="mono" style="color: var(--accent);">{{ diff.branch }}</code></p>
+
+<!-- File summary -->
+{% if diff.stat %}
+<div class="detail-section mb-3" style="padding: 12px 14px;">
+    <div class="detail-section-title" style="margin-bottom: 8px;">&#x1F4CA; Changes Summary</div>
+    <pre class="mono text-sm" style="white-space: pre-wrap; color: var(--text-secondary);">{{ diff.stat }}</pre>
+</div>
+{% endif %}
+
+<!-- Full diff -->
+<div class="detail-section" style="padding: 0; overflow: hidden;">
+    <div class="detail-section-title" style="padding: 12px 14px; margin-bottom: 0;">&#x1F4DD; Diff</div>
+    <div style="max-height: 70vh; overflow: auto; background: var(--terminal-bg); padding: 12px;">
+        <pre class="mono" style="font-size: 12px; line-height: 1.6; white-space: pre-wrap; margin: 0;">{% for line in diff.diff.split('\n') %}{% if line.startswith('+++') or line.startswith('---') %}<span style="color: var(--text-muted); font-weight: 600;">{{ line }}</span>
+{% elif line.startswith('@@') %}<span style="color: var(--info, #58A6FF); background: rgba(88,166,255,0.1); display: inline-block; width: 100%;">{{ line }}</span>
+{% elif line.startswith('+') %}<span style="color: var(--success); background: rgba(63,185,80,0.1); display: inline-block; width: 100%;">{{ line }}</span>
+{% elif line.startswith('-') %}<span style="color: var(--error); background: rgba(248,81,73,0.1); display: inline-block; width: 100%;">{{ line }}</span>
+{% elif line.startswith('diff ') %}<span style="color: var(--accent); font-weight: 700; border-top: 1px solid var(--border); padding-top: 8px; margin-top: 8px; display: inline-block; width: 100%;">{{ line }}</span>
+{% else %}{{ line }}
+{% endif %}{% endfor %}</pre>
+    </div>
+</div>
+
+{% elif diff and diff.error %}
+<div class="detail-section">
+    <p class="text-sm text-error">{{ diff.error }}</p>
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">&#x1F50D;</div>
+    <div class="empty-title">No diff available</div>
+    <div class="empty-quote">"{{ smart_quote('empty') }}"</div>
+</div>
+{% endif %}
+{% endblock %}

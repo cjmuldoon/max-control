@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}99's Field Log{% endblock %}
+{% block topbar_title %}Agent 99 — Field Log{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x1F4DC; 99's Field Log</h1>
+    <a href="{{ url_for('agent99_config.index') }}" class="btn btn-secondary">&#x1F469; 99's Direct Line</a>
+</div>
+<p class="text-sm text-muted mb-3">Permanent record of all conversations with Agent 99. Persists across server restarts. Newest entries at the top.</p>
+
+{% if entries %}
+<div class="detail-section" style="padding: 0;">
+    <div style="max-height: 70vh; overflow-y: auto;">
+        {% for entry in entries | reverse %}
+        <div style="padding: 10px 16px; border-bottom: 1px solid var(--border); {% if entry.role == 'user' %}background: var(--accent-muted);{% elif entry.role == 'system' %}background: var(--bg-tertiary);{% endif %}">
+            <div class="flex items-center justify-between mb-1">
+                <div class="flex items-center gap-2">
+                    {% if entry.role == 'user' %}
+                    <img src="/static/img/maxwell-smart.svg" style="width:14px;height:14px;border-radius:50%;">
+                    <strong class="text-xs">Chief</strong>
+                    {% elif entry.role == 'assistant' %}
+                    <img src="/static/img/agent99.svg" style="width:14px;height:14px;border-radius:50%;">
+                    <strong class="text-xs">99</strong>
+                    {% else %}
+                    <strong class="text-xs text-muted">System</strong>
+                    {% endif %}
+                    {% if entry.page_context %}
+                    <span class="text-xs text-muted">on {{ entry.page_context }}</span>
+                    {% endif %}
+                </div>
+                <time class="text-xs text-muted" data-utc="{{ entry.timestamp }}">{{ entry.timestamp }}</time>
+            </div>
+            <div class="text-sm" style="white-space: pre-wrap; word-break: break-word;">{{ entry.content }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">&#x1F4DC;</div>
+    <div class="empty-title">No conversations logged yet</div>
+    <div class="empty-quote">"{{ smart_quote('empty') }}"</div>
+</div>
+{% endif %}
+{% endblock %}

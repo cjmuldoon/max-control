@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Communications Division{% endblock %}
+{% block topbar_title %}CONTROL Communications Division{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x1F4DE; Communications Division</h1>
+</div>
+
+<p class="text-sm text-muted mb-3">Discord and Telegram bots for each project. Send commands, receive agent reports, and queue messages when offline. Configure bot tokens, toggle channels on/off, and monitor the message feed.</p>
+
+<!-- Setup Guide -->
+<div class="detail-section mb-4" style="padding: 14px;">
+    <div class="flex items-center justify-between">
+        <div class="detail-section-title" style="margin-bottom: 0; border: none; padding: 0;">&#x1F4D6; Shoe Phone Setup Guide</div>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('bot-guide').style.display = document.getElementById('bot-guide').style.display === 'none' ? 'block' : 'none'">Show/Hide</button>
+    </div>
+    <div id="bot-guide" style="display: none; margin-top: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div>
+                <strong class="text-sm">&#x1F3AE; Discord Bot Setup</strong>
+                <ol class="text-xs text-muted" style="padding-left: 16px; margin-top: 6px; line-height: 2;">
+                    <li>Go to <a href="https://discord.com/developers/applications" target="_blank">discord.com/developers</a></li>
+                    <li>New Application → name it (e.g. "Max - ProjectName")</li>
+                    <li>Bot tab → Create Bot → <strong>Copy the token</strong></li>
+                    <li>Enable <em>Message Content Intent</em> under Privileged Intents</li>
+                    <li>OAuth2 → URL Generator → select <code>bot</code> scope</li>
+                    <li>Add permissions: Send Messages, Read Message History</li>
+                    <li>Open the generated URL to invite bot to your server</li>
+                    <li>Right-click the channel → Copy Channel ID</li>
+                    <li>Paste token + channel ID below</li>
+                </ol>
+            </div>
+            <div>
+                <strong class="text-sm">&#x2708; Telegram Bot Setup</strong>
+                <ol class="text-xs text-muted" style="padding-left: 16px; margin-top: 6px; line-height: 2;">
+                    <li>Open Telegram, search for <a href="https://t.me/BotFather" target="_blank">@BotFather</a></li>
+                    <li>Send <code>/newbot</code> and follow the prompts</li>
+                    <li><strong>Copy the bot token</strong> BotFather gives you</li>
+                    <li>Send any message to your new bot</li>
+                    <li>To get your Chat ID, send <code>/start</code> to the bot</li>
+                    <li>The bot will reply with your Chat ID</li>
+                    <li>Paste token + chat ID below</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if projects %}
+<div class="project-grid" style="margin-top: 12px;">
+    {% for project in projects %}
+    {% set bots = project_bots.get(project.id, {}) %}
+    <div class="project-card" style="cursor: default;">
+        <div class="project-card-header">
+            <span class="project-card-title">{{ project.name }}</span>
+            {% if bots.get('queue_count', 0) > 0 %}
+            <span class="nav-badge" title="Messages in the dead drop">{{ bots.queue_count }}</span>
+            {% endif %}
+        </div>
+
+        <!-- Discord -->
+        <div class="bot-channel-row">
+            <div class="flex items-center gap-2 mb-2">
+                <span style="font-size: 18px;">&#x1F3AE;</span>
+                <strong class="text-sm">Discord — Shoe Phone</strong>
+                {% if bots.get('discord_running') %}
+                <span class="status-badge running" style="margin-left: auto;"><span class="status-dot"></span> Live</span>
+                {% else %}
+                <span class="status-badge stopped" style="margin-left: auto;"><span class="status-dot"></span> Off</span>
+                {% endif %}
+            </div>
+
+            {% set discord_config = None %}
+            {% for cfg in bots.get('configs', []) %}
+                {% if cfg.platform == 'discord' %}{% set discord_config = cfg %}{% endif %}
+            {% endfor %}
+
+            {% if discord_config %}
+            <div class="flex gap-2">
+                <form method="POST" action="{{ url_for('bots.toggle', project_id=project.id, platform='discord') }}">
+                    {% if bots.get('discord_running') %}
+                    <button type="submit" class="btn btn-danger btn-sm">&#x23F9; Disconnect</button>
+                    {% else %}
+                    <button type="submit" class="btn btn-primary btn-sm">&#x1F4DE; Connect</button>
+                    {% endif %}
+                </form>
+            </div>
+            {% else %}
+            <form method="POST" action="{{ url_for('bots.configure', project_id=project.id) }}" class="mt-2">
+                <input type="hidden" name="platform" value="discord">
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <input type="password" name="token" class="form-input" placeholder="&#x1F512; Bot token — Cone of Silence active" style="font-size: 12px;">
+                </div>
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <input type="text" name="channel_id" class="form-input" placeholder="Channel ID" style="font-size: 12px;">
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">&#x2699; Configure</button>
+            </form>
+            {% endif %}
+        </div>
+
+        <hr style="border: none; border-top: 1px solid var(--border); margin: 12px 0;">
+
+        <!-- Telegram -->
+        <div class="bot-channel-row">
+            <div class="flex items-center gap-2 mb-2">
+                <span style="font-size: 18px;">&#x2708;</span>
+                <strong class="text-sm">Telegram — Agent 99's Channel</strong>
+                {% if bots.get('telegram_running') %}
+                <span class="status-badge running" style="margin-left: auto;"><span class="status-dot"></span> Live</span>
+                {% else %}
+                <span class="status-badge stopped" style="margin-left: auto;"><span class="status-dot"></span> Off</span>
+                {% endif %}
+            </div>
+
+            {% set telegram_config = None %}
+            {% for cfg in bots.get('configs', []) %}
+                {% if cfg.platform == 'telegram' %}{% set telegram_config = cfg %}{% endif %}
+            {% endfor %}
+
+            {% if telegram_config %}
+            <div class="flex gap-2">
+                <form method="POST" action="{{ url_for('bots.toggle', project_id=project.id, platform='telegram') }}">
+                    {% if bots.get('telegram_running') %}
+                    <button type="submit" class="btn btn-danger btn-sm">&#x23F9; Disconnect</button>
+                    {% else %}
+                    <button type="submit" class="btn btn-primary btn-sm">&#x1F4DE; Connect</button>
+                    {% endif %}
+                </form>
+            </div>
+            {% else %}
+            <form method="POST" action="{{ url_for('bots.configure', project_id=project.id) }}" class="mt-2">
+                <input type="hidden" name="platform" value="telegram">
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <input type="password" name="token" class="form-input" placeholder="&#x1F512; Bot token — Cone of Silence active" style="font-size: 12px;">
+                </div>
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <input type="text" name="channel_id" class="form-input" placeholder="Chat ID (send /start to your bot to get it)" style="font-size: 12px;">
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">&#x2699; Configure</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">&#x1F4DE;</div>
+    <div class="empty-title">No field operations to connect</div>
+    <div class="empty-quote">"The shoe phone network has no subscribers."</div>
+    <a href="{{ url_for('projects.create') }}" class="btn btn-primary">Deploy your first agent</a>
+</div>
+{% endif %}
+{% endblock %}

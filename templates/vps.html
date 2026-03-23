@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Satellite Office{% endblock %}
+{% block topbar_title %}CONTROL Satellite Office — Remote Operations{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x1F30D; Satellite Office</h1>
+</div>
+<p class="text-sm text-muted mb-3">Remote VPS operations. Deploy research agents (plan mode) to the satellite office — they investigate and report back while 86 handles local execution. Local HQ stays in sync via Postgres.</p>
+
+<div class="detail-grid">
+    <!-- Connection Config -->
+    <div class="detail-section">
+        <div class="detail-section-title">&#x1F512; Satellite Office Connection</div>
+        <form method="POST" action="{{ url_for('vps.configure') }}">
+            <div class="form-group">
+                <label class="form-label">Host</label>
+                <input type="text" name="host" class="form-input mono" value="{{ config.host if config else 'your-vps-ip' }}" placeholder="your-vps-ip">
+            </div>
+            <div class="flex gap-2">
+                <div class="form-group" style="flex:1;">
+                    <label class="form-label">User</label>
+                    <input type="text" name="user" class="form-input" value="{{ config.user if config else 'root' }}" placeholder="root">
+                </div>
+                <div class="form-group" style="width:100px;">
+                    <label class="form-label">Port</label>
+                    <input type="number" name="port" class="form-input" value="{{ config.port if config else 22 }}" placeholder="22">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">SSH Key Path</label>
+                <input type="text" name="key_path" class="form-input mono" value="{{ config.key_path if config else '~/.ssh/id_rsa' }}" placeholder="~/.ssh/id_rsa">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Postgres DSN (for sync)</label>
+                <input type="text" name="postgres_dsn" class="form-input mono" value="{{ config.postgres_dsn if config else '' }}" placeholder="postgresql://user:pass@localhost/max">
+                <div class="form-hint">Optional — enables bidirectional sync between HQ and satellite office</div>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">&#x1F4BE; Save Config</button>
+            </div>
+        </form>
+
+        {% if config %}
+        <div class="flex gap-2 mt-3">
+            <form method="POST" action="{{ url_for('vps.test_connection') }}" style="display:inline;">
+                <button type="submit" class="btn btn-secondary btn-sm">&#x1F4E1; Test Connection</button>
+            </form>
+            <form method="POST" action="{{ url_for('vps.setup') }}" style="display:inline;">
+                <button type="submit" class="btn btn-secondary btn-sm">&#x1F680; Setup Remote</button>
+            </form>
+            <form method="POST" action="{{ url_for('vps.sync_now') }}" style="display:inline;">
+                <button type="submit" class="btn btn-secondary btn-sm">&#x1F504; Sync Now</button>
+            </form>
+        </div>
+        {% if config.last_sync_at %}
+        <p class="text-xs text-muted mt-2">Last sync: {{ config.last_sync_at }}</p>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    <!-- Remote Terminal -->
+    <div class="detail-section">
+        <div class="detail-section-title">&#x1F4BB; Remote Terminal</div>
+        <p class="text-xs text-muted mb-2">Execute commands on the satellite office.</p>
+        {% if config %}
+        <div class="flex gap-2 mb-2">
+            <input type="text" id="vps-cmd" class="form-input mono" placeholder="uname -a" style="flex:1; font-size: 12px;">
+            <button class="btn btn-primary btn-sm" onclick="execVpsCmd()">&#x25B6; Run</button>
+        </div>
+        <div id="vps-output" class="agent-log" style="max-height: 200px; min-height: 60px;">
+            <div class="agent-log-entry text-muted">Enter a command above...</div>
+        </div>
+        {% else %}
+        <p class="text-sm text-muted">Configure the connection first, Chief.</p>
+        {% endif %}
+    </div>
+
+    <!-- Deploy Remote Agents -->
+    <div class="detail-section full-width">
+        <div class="detail-section-title">&#x1F575; Remote Research Agents</div>
+        <p class="text-xs text-muted mb-3">Deploy research agents to the satellite office. They run in plan mode — investigate, analyse, and report. 86 handles local execution.</p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;">
+            {% for project in projects %}
+            <div style="padding: 12px; background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border);">
+                <div class="flex items-center justify-between mb-2">
+                    <strong class="text-sm">{{ project.name }}</strong>
+                    {% if project.id in remote_status %}
+                    <span class="status-badge running" style="font-size:10px;"><span class="status-dot"></span> Deployed</span>
+                    {% else %}
+                    <span class="status-badge stopped" style="font-size:10px;"><span class="status-dot"></span> At HQ</span>
+                    {% endif %}
+                </div>
+                <div class="text-xs text-muted mb-2 mono" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {{ project.github_url or 'No GitHub URL' }}
+                </div>
+                <div class="flex gap-2">
+                    {% if project.id in remote_status %}
+                    <form method="POST" action="{{ url_for('vps.recall_remote', project_id=project.id) }}">
+                        <button type="submit" class="btn btn-danger btn-sm" style="font-size:11px;">&#x1F4DE; Recall</button>
+                    </form>
+                    <button class="btn btn-secondary btn-sm" style="font-size:11px;" onclick="fetchRemoteLog('{{ project.id }}')">&#x1F4DC; Log</button>
+                    {% else %}
+                    {% if config %}
+                    <form method="POST" action="{{ url_for('vps.deploy_remote', project_id=project.id) }}">
+                        <button type="submit" class="btn btn-primary btn-sm" style="font-size:11px;">&#x1F680; Deploy Research Agent</button>
+                    </form>
+                    {% else %}
+                    <span class="text-xs text-muted">Configure VPS first</span>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+async function execVpsCmd() {
+    const input = document.getElementById('vps-cmd');
+    const output = document.getElementById('vps-output');
+    const cmd = input.value.trim();
+    if (!cmd) return;
+
+    output.innerHTML = '<div class="agent-log-entry text-muted">Running...</div>';
+
+    try {
+        const form = new FormData();
+        form.append('command', cmd);
+        const resp = await fetch('/vps/exec', { method: 'POST', body: form });
+        const data = await resp.json();
+
+        output.innerHTML = '';
+        if (data.output) {
+            const entry = document.createElement('div');
+            entry.className = 'agent-log-entry';
+            entry.textContent = data.output;
+            output.appendChild(entry);
+        }
+        if (data.error) {
+            const entry = document.createElement('div');
+            entry.className = 'agent-log-entry';
+            entry.style.color = 'var(--error)';
+            entry.textContent = data.error;
+            output.appendChild(entry);
+        }
+    } catch (err) {
+        output.innerHTML = `<div class="agent-log-entry" style="color:var(--error);">Connection failed: ${err.message}</div>`;
+    }
+}
+
+async function fetchRemoteLog(projectId) {
+    try {
+        const resp = await fetch(`/vps/log/${projectId}`);
+        const data = await resp.json();
+        const output = document.getElementById('vps-output');
+        output.innerHTML = '';
+        const entry = document.createElement('div');
+        entry.className = 'agent-log-entry';
+        entry.textContent = data.log || 'No log available.';
+        output.appendChild(entry);
+    } catch (err) {
+        alert('Could not fetch remote log.');
+    }
+}
+
+document.getElementById('vps-cmd')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') execVpsCmd();
+});
+</script>
+{% endblock %}

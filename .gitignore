@@ -1,0 +1,49 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# macOS
+.DS_Store
+
+# Data directories (user-specific)
+backups/
+uploads/
+logs/
+task_results/
+
+# Bot configuration (contains tokens)
+discord_bot_config.json
+agent99_bots.json
+agent99_history.json
+agent99_log.jsonl
+
+# Lock/PID files
+.discord_worker.lock
+.discord_worker.pid
+
+# Environment (contains secrets)
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude project files (user-specific)
+.claude/
+
+# LaunchAgent plists (user paths baked in)
+*.plist
+!scripts/max.plist
+!scripts/caddy.plist

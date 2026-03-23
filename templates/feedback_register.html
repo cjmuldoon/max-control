@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}Mission Dossier{% endblock %}
+{% block topbar_title %}CONTROL Mission Dossier{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x1F4CB; Mission Dossier</h1>
+    <div class="flex gap-2">
+        <form method="POST" action="{{ url_for('feedback.sync') }}" style="display:inline;">
+            <button type="submit" class="btn btn-secondary btn-sm">&#x1F504; Sync All</button>
+        </form>
+        <form method="POST" action="{{ url_for('feedback.execute_due') }}" style="display:inline;">
+            <button type="submit" class="btn btn-primary btn-sm">&#x1F680; Run Due Tasks</button>
+        </form>
+    </div>
+</div>
+<p class="text-sm text-muted mb-3">All active and completed CONTROL operations. Assign agents, review changes, approve deployments. The classified file on every mission.</p>
+
+<!-- Stats — clickable to filter -->
+<div class="flex gap-2 mb-3" style="flex-wrap: wrap;">
+    <span class="status-badge" style="background: var(--accent-muted); color: var(--accent);">Total: {{ stats.get('total', 0) }}</span>
+    {% for st, count in stats.items() if st not in ('total', 'by_project', 'by_category') %}
+    <a href="?status={{ st }}" class="status-badge" style="text-decoration: none; {% if st in status_filter %}background: var(--accent-muted); color: var(--accent);{% else %}background: var(--bg-tertiary); color: var(--text-secondary);{% endif %}">
+        {{ st | replace('_', ' ') | title }}: {{ count }}
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Filters -->
+<div class="detail-section mb-3" style="padding: 10px 14px;">
+    <form method="GET" class="flex gap-2 items-center" style="flex-wrap: wrap;">
+        <!-- Multi-select status dropdown -->
+        <div style="position: relative; display: inline-block;">
+            <button type="button" class="form-select" style="font-size: 12px; cursor: pointer; min-width: 140px; text-align: left;" onclick="document.getElementById('status-dd').style.display = document.getElementById('status-dd').style.display === 'none' ? 'block' : 'none'">
+                {% if status_filter %}{{ status_filter | length }} status{% if status_filter | length > 1 %}es{% endif %}{% else %}All Statuses{% endif %} ▾
+            </button>
+            <div id="status-dd" style="display: none; position: absolute; top: 100%; left: 0; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; padding: 8px; z-index: 20; min-width: 160px; margin-top: 2px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                {% for s in ['open', 'planned', 'in_progress', 'under_review', 'completed', 'declined'] %}
+                <label style="display: flex; align-items: center; gap: 6px; padding: 4px; font-size: 12px; cursor: pointer;">
+                    <input type="checkbox" name="status" value="{{ s }}" {% if s in status_filter %}checked{% endif %} style="accent-color: var(--accent);">
+                    {{ s | replace('_', ' ') | title }}
+                </label>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary btn-sm mt-2" style="width: 100%; font-size: 11px;">Apply</button>
+            </div>
+        </div>
+        <select name="category" class="form-select" style="width: auto; font-size: 12px;" onchange="this.form.submit()">
+            <option value="">All Categories</option>
+            <option value="bug_report" {% if category_filter == 'bug_report' %}selected{% endif %}>&#x1F41B; Bug</option>
+            <option value="feature_request" {% if category_filter == 'feature_request' %}selected{% endif %}>&#x2728; Feature</option>
+            <option value="improvement" {% if category_filter == 'improvement' %}selected{% endif %}>&#x1F4A1; Improvement</option>
+            <option value="new_tool" {% if category_filter == 'new_tool' %}selected{% endif %}>&#x1F527; New Tool</option>
+            <option value="integration" {% if category_filter == 'integration' %}selected{% endif %}>&#x1F517; Integration</option>
+            <option value="task" {% if category_filter == 'task' %}selected{% endif %}>&#x1F4CC; Task</option>
+        </select>
+        <select name="project" class="form-select" style="width: auto; font-size: 12px;" onchange="this.form.submit()">
+            <option value="">All Projects</option>
+            {% for project in projects %}
+            <option value="{{ project.id }}" {% if project_filter == project.id %}selected{% endif %}>{{ project.name }}</option>
+            {% endfor %}
+        </select>
+        {% if status_filter or category_filter or project_filter %}
+        <a href="{{ url_for('feedback.index') }}" class="btn btn-secondary btn-sm" style="font-size: 11px;">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Add New Item -->
+<div class="detail-section mb-3" style="padding: 12px 14px;">
+    <div class="detail-section-title" style="margin-bottom: 8px;">&#x2795; Add New Item</div>
+    <form method="POST" action="{{ url_for('feedback.add') }}">
+        <div class="flex gap-2 items-center" style="flex-wrap: wrap;">
+            <select name="project_id" class="form-select" style="width: auto; font-size: 12px;">
+                <option value="">No Project (General)</option>
+                {% for project in projects %}
+                <option value="{{ project.id }}">{{ project.name }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" name="title" class="form-input" placeholder="Title" style="flex: 1; min-width: 200px; font-size: 12px;" required>
+            <select name="category" class="form-select" style="width: auto; font-size: 12px;">
+                <option value="task">&#x1F4CC; Task</option>
+                <option value="feature_request">&#x2728; Feature</option>
+                <option value="bug_report">&#x1F41B; Bug</option>
+                <option value="improvement">&#x1F4A1; Improvement</option>
+                <option value="new_tool">&#x1F527; New Tool</option>
+                <option value="integration">&#x1F517; Integration</option>
+            </select>
+            <select name="priority" class="form-select" style="width: auto; font-size: 12px;">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">&#x2795; Add</button>
+        </div>
+        <input type="text" name="description" class="form-input mt-2" placeholder="Description (optional)" style="font-size: 12px;">
+    </form>
+</div>
+
+<!-- Bulk Action Bar -->
+<form id="bulk-form" method="POST" action="{{ url_for('feedback.bulk_action') }}">
+<div id="bulk-bar" class="flex items-center justify-between mb-2" style="display: none; padding: 8px 14px; background: var(--accent-muted); border-radius: 8px; position: sticky; top: 56px; z-index: 40; backdrop-filter: blur(8px);">
+    <div class="flex gap-2 items-center">
+        <button type="button" class="btn btn-secondary btn-sm" style="font-size: 11px;" onclick="feedbackSelectAll()">&#x2611; Select All</button>
+        <span id="bulk-count" class="text-sm" style="color: var(--accent);">0 selected</span>
+    </div>
+    <div class="flex gap-2" id="bulk-actions">
+        <button type="submit" name="action" value="run" id="bulk-run" class="btn btn-secondary btn-sm" style="font-size: 11px;">&#x1F3C3; Run</button>
+        <button type="submit" name="action" value="deploy" id="bulk-deploy" class="btn btn-secondary btn-sm" style="font-size: 11px;">&#x2705; Deploy</button>
+        <button type="submit" name="action" value="run_and_deploy" id="bulk-run-deploy" class="btn btn-primary btn-sm" style="font-size: 11px;">&#x1F680; Run & Deploy</button>
+    </div>
+</div>
+
+<!-- Items List -->
+{% if items %}
+<div style="display: flex; flex-direction: column; gap: 6px;">
+    {% for item in items %}
+    <div class="detail-section" style="padding: 10px 14px;">
+        <div class="flex items-center justify-between" style="gap: 8px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 0;">
+                <div class="flex items-center gap-2" style="flex-wrap: wrap;">
+                    <input type="checkbox" name="item_ids" value="{{ item.id }}" form="bulk-form" onchange="feedbackCheckChanged()" data-status="{{ item.status }}" data-deploy="{{ item.deploy_status or '' }}" style="accent-color: var(--accent); width: 14px; height: 14px; flex-shrink: 0;">
+                    <span class="text-xs mono text-muted" title="{{ item.id }}" style="opacity: 0.5;">{{ item.id[:6] }}</span>
+                    {% if item.category == 'bug_report' %}&#x1F41B;
+                    {% elif item.category == 'feature_request' %}&#x2728;
+                    {% elif item.category == 'improvement' %}&#x1F4A1;
+                    {% elif item.category == 'new_tool' %}&#x1F527;
+                    {% elif item.category == 'integration' %}&#x1F517;
+                    {% elif item.category == 'task' %}&#x1F4CC;
+                    {% else %}&#x1F4CB;{% endif %}
+                    <strong class="text-sm">{{ item.title }}</strong>
+                    <span class="location-badge local" style="font-size: 10px;">{{ item.project_name }}</span>
+                    <span class="status-badge {% if item.status == 'completed' %}running{% elif item.status == 'declined' %}error{% elif item.status == 'under_review' %}stopped{% else %}stopped{% endif %}" style="font-size: 10px;">
+                        <span class="status-dot"></span> {{ item.status | replace('_', ' ') | title }}
+                    </span>
+                    {% if item.vote_count and item.vote_count > 0 %}
+                    <span class="text-xs text-muted">&#x1F44D; {{ item.vote_count }}</span>
+                    {% endif %}
+                    {% if item.priority == 'high' %}
+                    <span class="text-xs" style="color: var(--error);">&#x26A0; High</span>
+                    {% endif %}
+                    {% if item.assigned_to %}
+                    <span class="text-xs" style="color: var(--accent);">&#x1F916; {{ item.assigned_to }}</span>
+                    {% endif %}
+                    {% if item.scheduled_at %}
+                    <span class="text-xs text-muted">&#x1F4C5; {{ item.scheduled_at[:16] }}</span>
+                    {% endif %}
+                    {% if item.deploy_status == 'awaiting_review' %}
+                    <span class="text-xs" style="color: var(--warning);">&#x1F4E6; Awaiting Review</span>
+                    {% elif item.deploy_status == 'deployed' %}
+                    <span class="text-xs" style="color: var(--success);">&#x2705; Deployed</span>
+                    {% endif %}
+                </div>
+                {% if item.description %}
+                <div class="text-xs text-muted mt-1" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 500px;">{{ item.description }}</div>
+                {% endif %}
+                {% if item.admin_response %}
+                <div class="text-xs mt-1" style="color: var(--accent);">&#x1F4AC; {{ item.admin_response }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex gap-1 items-center" style="flex-shrink: 0; flex-wrap: wrap;">
+                <!-- Update controls -->
+                <form method="POST" action="{{ url_for('feedback.update', item_id=item.id) }}" class="flex gap-1 items-center">
+                    <select name="status" class="form-select" style="width: auto; font-size: 10px; padding: 2px 4px;">
+                        {% for s in ['open', 'planned', 'in_progress', 'under_review', 'completed', 'declined'] %}
+                        <option value="{{ s }}" {% if item.status == s %}selected{% endif %}>{{ s | replace('_', ' ') | title }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="assigned_to" class="form-select" style="width: auto; font-size: 10px; padding: 2px 4px;">
+                        <option value="">—</option>
+                        <option value="86 (Sonnet)" {% if item.assigned_to == '86 (Sonnet)' %}selected{% endif %}>Sonnet</option>
+                        <option value="86 (Opus)" {% if item.assigned_to == '86 (Opus)' %}selected{% endif %}>Opus</option>
+                        <option value="99" {% if item.assigned_to == '99' %}selected{% endif %}>99</option>
+                        <option value="VPS Research" {% if item.assigned_to == 'VPS Research' %}selected{% endif %}>VPS</option>
+                        <option value="Manual" {% if item.assigned_to == 'Manual' %}selected{% endif %}>Manual</option>
+                    </select>
+                    <input type="datetime-local" name="scheduled_at" value="{{ item.scheduled_at[:16] if item.scheduled_at else '' }}" style="font-size: 10px; padding: 2px 4px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-primary); width: 145px;">
+                    <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 10px; padding: 2px 6px;" title="Save changes">&#x1F4BE;</button>
+                </form>
+
+                <!-- Run agent -->
+                {% if item.status not in ('completed', 'declined', 'in_progress') %}
+                <form method="POST" action="{{ url_for('feedback.execute', item_id=item.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 10px; padding: 2px 6px;" title="Run agent on this task">&#x1F3C3;</button>
+                </form>
+                {% endif %}
+
+                <!-- Diff (if changes available) -->
+                {% if item.deploy_branch %}
+                <a href="{{ url_for('feedback.diff', item_id=item.id) }}" class="btn btn-secondary btn-sm" style="font-size: 10px; padding: 2px 6px;" title="View diff">&#x1F50D;</a>
+                {% endif %}
+
+                <!-- Deploy -->
+                {% if item.deploy_status == 'awaiting_review' %}
+                <form method="POST" action="{{ url_for('feedback.deploy', item_id=item.id) }}" style="display:inline;" onsubmit="return confirm('Deploy to production?');">
+                    <button type="submit" class="btn btn-primary btn-sm" style="font-size: 10px; padding: 2px 6px;" title="Approve & Deploy">&#x2705;</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        <div class="text-xs text-muted mt-1">
+            {% if item.author_name %}{{ item.author_name }} · {% endif %}{% if item.created_at %}<time data-utc="{{ item.created_at }}">{{ item.created_at[:10] }}</time>{% endif %}{% if item.source == 'manual' %} · Added in CONTROL{% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+</form>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">&#x1F4CB;</div>
+    <div class="empty-title">No feedback items</div>
+    <div class="empty-quote">"{{ smart_quote('empty') }}"</div>
+    <p class="text-sm text-muted mt-2">Click "Sync All" to pull from production, or add items manually.</p>
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('click', (e) => {
+    const dd = document.getElementById('status-dd');
+    if (dd && !e.target.closest('[onclick*="status-dd"]') && !dd.contains(e.target)) {
+        dd.style.display = 'none';
+    }
+});
+
+function feedbackCheckChanged() {
+    const checked = document.querySelectorAll('#bulk-form input[name="item_ids"]:checked');
+    const bar = document.getElementById('bulk-bar');
+    const count = document.getElementById('bulk-count');
+
+    if (checked.length > 0) {
+        bar.style.display = 'flex';
+        count.textContent = checked.length + ' selected';
+
+        // Determine which actions make sense based on selected items
+        let hasRunnable = false;    // items that can be worked on
+        let hasDeployable = false;  // items with changes ready to deploy
+
+        checked.forEach(cb => {
+            const status = cb.dataset.status;
+            const deploy = cb.dataset.deploy;
+            // Can run: open, planned, or completed items that need rework
+            if (['open', 'planned'].includes(status)) hasRunnable = true;
+            // Can deploy: awaiting review, or completed with a branch
+            if (deploy === 'awaiting_review') hasDeployable = true;
+            if (status === 'completed' && deploy) hasDeployable = true;
+        });
+
+        document.getElementById('bulk-run').style.display = hasRunnable ? '' : 'none';
+        document.getElementById('bulk-deploy').style.display = hasDeployable ? '' : 'none';
+        document.getElementById('bulk-run-deploy').style.display = hasRunnable ? '' : 'none';
+    } else {
+        bar.style.display = 'none';
+    }
+}
+
+function feedbackSelectAll() {
+    const boxes = document.querySelectorAll('#bulk-form input[name="item_ids"]');
+    const allChecked = Array.from(boxes).every(b => b.checked);
+    boxes.forEach(b => b.checked = !allChecked);
+    feedbackCheckChanged();
+}
+</script>
+{% endblock %}

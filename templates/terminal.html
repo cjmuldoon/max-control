@@ -1,0 +1,443 @@
+{% extends "base.html" %}
+
+{% block title %}CONTROL Mainframe{% endblock %}
+{% block topbar_title %}CONTROL Mainframe{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>&#x1F4BB; CONTROL Mainframe</h1>
+    <div class="flex gap-2 items-center" style="flex-wrap: wrap;">
+        <select id="terminal-project" class="form-select" style="width: auto; min-width: 180px;">
+            <option value="" data-label="Home" data-session="" data-slug="">Home directory</option>
+            {% for project in projects %}
+            <option value="{{ project.path }}" data-label="{{ project.name }}" data-session="{{ project_sessions.get(project.slug, '') }}" data-slug="{{ project.slug }}">{{ project.name }}</option>
+            {% endfor %}
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="newTerminal('main')">&#x2795; Terminal</button>
+        <button class="btn btn-secondary btn-sm" onclick="newTerminal('mini')">&#x1F5D7; Mini</button>
+        <button class="btn btn-secondary btn-sm" onclick="newClaudeTerminal('main', false)">&#x1F916; Claude</button>
+        <button class="btn btn-secondary btn-sm" onclick="newClaudeTerminal('mini', false)">&#x1F916; Mini</button>
+        <button class="btn btn-sm" onclick="newClaudeTerminal('main', true)" style="background: rgba(248,81,73,0.15); color: var(--error);" title="KAOS mode — dangerously skip permissions">&#x2620; KAOS</button>
+        <button class="btn btn-sm" onclick="newClaudeTerminal('mini', true)" style="background: rgba(248,81,73,0.15); color: var(--error);" title="KAOS mode mini — dangerously skip permissions">&#x2620; Mini</button>
+    </div>
+</div>
+<p class="text-sm text-muted mb-2">Persistent terminals — navigate away and come back, sessions stay alive. Main terminal for focused work, mini terminals to monitor background jobs.</p>
+
+<!-- Session Tabs (main terminals) -->
+<div id="terminal-tabs" class="flex gap-1 mb-2" style="flex-wrap: wrap; min-height: 28px;">
+    <span id="no-sessions-msg" class="text-xs text-muted" style="padding: 6px;">No active terminals. Open one above.</span>
+</div>
+
+<!-- Main Terminal -->
+<div id="terminal-wrapper" class="detail-section" style="padding: 0; overflow: hidden; position: relative;">
+    <div id="terminal-banner" style="padding: 40px 20px; text-align: center; color: var(--text-muted);">
+        <div style="font-size: 36px; margin-bottom: 8px;">&#x1F4BB;</div>
+        <div style="font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">CONTROL Mainframe</div>
+        <div class="text-sm" style="font-style: italic;">"{{ quote }}"</div>
+    </div>
+    <div id="terminal-container" style="height: 420px; background: var(--terminal-bg); display: none; position: relative; overflow: hidden;"></div>
+    <div id="terminal-toolbar" style="display: none; position: absolute; top: 8px; right: 8px; z-index: 10;">
+        <button class="btn btn-secondary btn-sm" onclick="toggleFullscreen()" id="fullscreen-btn" style="font-size: 11px; opacity: 0.7;">&#x26F6;</button>
+        <button class="btn btn-secondary btn-sm" onclick="popOutCurrent()" style="font-size: 11px; opacity: 0.7;">&#x1F5D7;</button>
+        <button class="btn btn-secondary btn-sm" onclick="moveToMini(activeSession)" style="font-size: 11px; opacity: 0.7;">&#x2B07; Mini</button>
+    </div>
+</div>
+
+<!-- Mini Terminals Grid -->
+<div id="mini-terminals" class="mt-3" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px;">
+</div>
+
+<style>
+    .terminal-tab {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 10px; border: 1px solid var(--border); border-bottom: none;
+        border-radius: 6px 6px 0 0; background: var(--bg-tertiary);
+        color: var(--text-secondary); font-size: 11px; cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .terminal-tab:hover { background: var(--bg-elevated); color: var(--text-primary); }
+    .terminal-tab.active { background: var(--terminal-bg); color: var(--accent); border-color: var(--accent); font-weight: 600; }
+    .terminal-tab-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .terminal-tab-dot.running { background: var(--success); }
+    .terminal-tab-dot.stopped { background: var(--text-muted); }
+    .terminal-tab-close { font-size: 13px; color: var(--text-muted); cursor: pointer; margin-left: 2px; }
+    .terminal-tab-close:hover { color: var(--error); }
+
+    .mini-terminal {
+        background: var(--bg-elevated); border: 1px solid var(--border);
+        border-radius: 8px; overflow: hidden; position: relative;
+    }
+    .mini-terminal-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 4px 8px; background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+        font-size: 11px; color: var(--text-secondary); cursor: pointer;
+    }
+    .mini-terminal-header:hover { background: var(--bg-tertiary); }
+    .mini-terminal-body { height: 220px; background: var(--terminal-bg); position: relative; }
+    .mini-terminal .mini-actions { display: flex; gap: 4px; }
+    .mini-terminal .mini-btn {
+        background: none; border: none; color: var(--text-muted); cursor: pointer;
+        font-size: 12px; padding: 0 2px;
+    }
+    .mini-terminal .mini-btn:hover { color: var(--text-primary); }
+
+    .terminal-fullscreen {
+        position: fixed !important; top: 0 !important; left: 0 !important;
+        right: 0 !important; bottom: 0 !important; z-index: 9999 !important;
+        border-radius: 0 !important; border: none !important; margin: 0 !important;
+    }
+    .terminal-fullscreen #terminal-container { height: 100% !important; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+<script>
+const terminals = {};  // session_id -> { terminal, fitAddon, pane, mode: 'main'|'mini' }
+let activeSession = null;
+let isFullscreen = false;
+
+function _getProjectInfo() {
+    const select = document.getElementById('terminal-project');
+    return {
+        path: select.value,
+        label: select.options[select.selectedIndex]?.dataset?.label || 'Home',
+    };
+}
+
+function newTerminal(mode) {
+    const info = _getProjectInfo();
+    MaxSocket.socket.emit('terminal_create', {
+        project_path: info.path || null,
+        label: info.label,
+        mode: mode || 'main',
+    });
+}
+
+function newClaudeTerminal(mode, kaos) {
+    const info = _getProjectInfo();
+    const select = document.getElementById('terminal-project');
+    const opt = select.options[select.selectedIndex];
+    const sessionId = opt?.dataset?.session || '';
+
+    // Build the claude command
+    let cmd = 'claude';
+    if (kaos) cmd += ' --dangerously-skip-permissions';
+    if (sessionId) cmd += ` --resume ${sessionId}`;
+    cmd += '\n';
+
+    const suffix = kaos ? ' (KAOS)' : ' (Claude)';
+    MaxSocket.socket.emit('terminal_create', {
+        project_path: info.path || null,
+        label: info.label + suffix,
+        mode: mode || 'main',
+        auto_cmd: cmd,
+    });
+}
+
+function _createTerminal(sessionId, label, mode) {
+    const style = getComputedStyle(document.documentElement);
+    const termOpts = {
+        cursorBlink: true,
+        fontSize: mode === 'mini' ? 11 : 14,
+        fontFamily: "'SF Mono', Monaco, 'Cascadia Code', monospace",
+        theme: {
+            background: style.getPropertyValue('--terminal-bg').trim(),
+            foreground: style.getPropertyValue('--terminal-fg').trim(),
+            cursor: '#E8734A',
+            cursorAccent: style.getPropertyValue('--terminal-bg').trim(),
+            selectionBackground: 'rgba(232, 115, 74, 0.3)',
+        },
+    };
+
+    const term = new Terminal(termOpts);
+    const fitAddon = new FitAddon.FitAddon();
+    term.loadAddon(fitAddon);
+
+    let pane;
+
+    if (mode === 'mini') {
+        pane = _createMiniPane(sessionId, label);
+        const body = pane.querySelector('.mini-terminal-body');
+        // Ensure the grid is visible and body has dimensions before opening
+        document.getElementById('mini-terminals').style.display = 'grid';
+        requestAnimationFrame(() => {
+            term.open(body);
+            setTimeout(() => fitAddon.fit(), 200);
+        });
+    } else {
+        // Main terminal pane
+        const container = document.getElementById('terminal-container');
+        container.querySelectorAll('.term-pane').forEach(el => el.style.display = 'none');
+        pane = document.createElement('div');
+        pane.className = 'term-pane';
+        pane.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;';
+        container.appendChild(pane);
+        term.open(pane);
+
+        document.getElementById('terminal-banner').style.display = 'none';
+        container.style.display = 'block';
+        document.getElementById('terminal-toolbar').style.display = 'block';
+
+        _addTab(sessionId, label);
+        activeSession = sessionId;
+    }
+
+    terminals[sessionId] = { terminal: term, fitAddon, pane, mode, label };
+
+    // Subscribe and sync size after xterm is ready
+    setTimeout(() => {
+        MaxSocket.socket.emit('terminal_subscribe', { session_id: sessionId });
+        fitAddon.fit();
+        // Tell the PTY the actual size so shell output aligns
+        MaxSocket.socket.emit('terminal_resize', {
+            session_id: sessionId, rows: term.rows, cols: term.cols,
+        });
+        setTimeout(() => {
+            fitAddon.fit();
+            MaxSocket.socket.emit('terminal_resize', {
+                session_id: sessionId, rows: term.rows, cols: term.cols,
+            });
+            term.refresh(0, term.rows - 1);
+        }, 300);
+    }, mode === 'mini' ? 400 : 150);
+
+    // Input
+    const sid = sessionId;
+    term.onData(data => {
+        MaxSocket.socket.emit('terminal_input', { session_id: sid, data });
+    });
+
+    // Resize
+    const target = mode === 'mini' ? pane.querySelector('.mini-terminal-body') : pane;
+    new ResizeObserver(() => {
+        if (fitAddon) {
+            fitAddon.fit();
+            MaxSocket.socket.emit('terminal_resize', { session_id: sid, rows: term.rows, cols: term.cols });
+        }
+    }).observe(target);
+
+    if (mode === 'main') term.focus();
+}
+
+function _createMiniPane(sessionId, label) {
+    const grid = document.getElementById('mini-terminals');
+    const mini = document.createElement('div');
+    mini.className = 'mini-terminal';
+    mini.id = `mini-${sessionId}`;
+    mini.innerHTML = `
+        <div class="mini-terminal-header" ondblclick="promoteToMain('${sessionId}')">
+            <div class="flex items-center gap-2">
+                <span class="terminal-tab-dot running"></span>
+                <span>${label}</span>
+            </div>
+            <div class="mini-actions">
+                <button class="mini-btn" onclick="promoteToMain('${sessionId}')" title="Open in main">&#x2B06;</button>
+                <button class="mini-btn" onclick="closeSession('${sessionId}')" title="Close">&times;</button>
+            </div>
+        </div>
+        <div class="mini-terminal-body"></div>
+    `;
+    grid.appendChild(mini);
+    return mini;
+}
+
+function _addTab(sessionId, label) {
+    const tabBar = document.getElementById('terminal-tabs');
+    document.getElementById('no-sessions-msg').style.display = 'none';
+
+    // Update all tabs to inactive
+    tabBar.querySelectorAll('.terminal-tab').forEach(t => t.classList.remove('active'));
+
+    const tab = document.createElement('button');
+    tab.className = 'terminal-tab active';
+    tab.dataset.session = sessionId;
+    tab.onclick = () => switchToMain(sessionId);
+    tab.innerHTML = `<span class="terminal-tab-dot running"></span> ${label} <span class="terminal-tab-close" onclick="event.stopPropagation(); moveToMini('${sessionId}')" title="Move to mini">&#x2B07;</span><span class="terminal-tab-close" onclick="event.stopPropagation(); closeSession('${sessionId}')" title="Close">&times;</span>`;
+    tabBar.insertBefore(tab, document.getElementById('no-sessions-msg'));
+}
+
+function switchToMain(sessionId) {
+    if (!terminals[sessionId]) return;
+    const container = document.getElementById('terminal-container');
+
+    // Hide all main panes
+    container.querySelectorAll('.term-pane').forEach(el => el.style.display = 'none');
+
+    // If it's currently a mini, promote it
+    if (terminals[sessionId].mode === 'mini') {
+        promoteToMain(sessionId);
+        return;
+    }
+
+    activeSession = sessionId;
+    terminals[sessionId].pane.style.display = '';
+    setTimeout(() => {
+        terminals[sessionId].fitAddon.fit();
+        terminals[sessionId].terminal.refresh(0, terminals[sessionId].terminal.rows - 1);
+        terminals[sessionId].terminal.focus();
+    }, 50);
+
+    document.querySelectorAll('.terminal-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.session === sessionId);
+    });
+}
+
+function promoteToMain(sessionId) {
+    const info = terminals[sessionId];
+    if (!info) return;
+
+    // Clean up mini pane
+    info.terminal.dispose();
+    const miniEl = document.getElementById(`mini-${sessionId}`);
+    if (miniEl) miniEl.remove();
+
+    // Remove from terminals
+    delete terminals[sessionId];
+
+    // Recreate as main
+    _createTerminal(sessionId, info.label, 'main');
+}
+
+function moveToMini(sessionId) {
+    if (!sessionId || !terminals[sessionId]) return;
+    const info = terminals[sessionId];
+
+    // Clean up main pane
+    info.terminal.dispose();
+    if (info.pane) info.pane.remove();
+
+    // Remove tab
+    const tab = document.querySelector(`.terminal-tab[data-session="${sessionId}"]`);
+    if (tab) tab.remove();
+
+    // Remove from terminals
+    delete terminals[sessionId];
+    activeSession = null;
+
+    // Recreate as mini
+    _createTerminal(sessionId, info.label, 'mini');
+
+    // Switch to next main tab or show banner
+    const remaining = document.querySelectorAll('.terminal-tab');
+    if (remaining.length > 0) {
+        switchToMain(remaining[0].dataset.session);
+    } else {
+        document.getElementById('terminal-container').style.display = 'none';
+        document.getElementById('terminal-toolbar').style.display = 'none';
+        document.getElementById('terminal-banner').style.display = 'block';
+    }
+}
+
+function closeSession(sessionId) {
+    MaxSocket.socket.emit('terminal_close', { session_id: sessionId });
+
+    if (terminals[sessionId]) {
+        terminals[sessionId].terminal.dispose();
+        if (terminals[sessionId].pane) terminals[sessionId].pane.remove();
+        const miniEl = document.getElementById(`mini-${sessionId}`);
+        if (miniEl) miniEl.remove();
+        delete terminals[sessionId];
+    }
+
+    const tab = document.querySelector(`.terminal-tab[data-session="${sessionId}"]`);
+    if (tab) tab.remove();
+
+    if (activeSession === sessionId) {
+        activeSession = null;
+        const remaining = document.querySelectorAll('.terminal-tab');
+        if (remaining.length > 0) {
+            switchToMain(remaining[0].dataset.session);
+        } else {
+            document.getElementById('terminal-container').style.display = 'none';
+            document.getElementById('terminal-toolbar').style.display = 'none';
+            document.getElementById('terminal-banner').style.display = 'block';
+            document.getElementById('no-sessions-msg').style.display = '';
+        }
+    }
+}
+
+function toggleFullscreen() {
+    const wrapper = document.getElementById('terminal-wrapper');
+    isFullscreen = !isFullscreen;
+    wrapper.classList.toggle('terminal-fullscreen', isFullscreen);
+    document.getElementById('fullscreen-btn').innerHTML = isFullscreen ? '&#x2716;' : '&#x26F6;';
+    setTimeout(() => {
+        if (activeSession && terminals[activeSession]) {
+            terminals[activeSession].fitAddon.fit();
+            terminals[activeSession].terminal.focus();
+        }
+    }, 200);
+}
+
+function popOutCurrent() {
+    if (!activeSession) return;
+    const info = terminals[activeSession];
+    const params = new URLSearchParams();
+    params.set('session', activeSession);
+    params.set('name', info?.label || 'Terminal');
+    window.open(`/terminal/popout?${params}`, `max-term-${activeSession}`, 'width=900,height=600,menubar=no,toolbar=no');
+}
+
+// SocketIO handlers
+document.addEventListener('DOMContentLoaded', () => {
+    MaxSocket.socket.on('terminal_created', data => {
+        const mode = data.mode || 'main';
+        const label = data.label || data.session_id.slice(0, 8);
+        _createTerminal(data.session_id, label, mode);
+
+        // Auto-type command if specified (e.g. 'claude\n')
+        if (data.auto_cmd) {
+            setTimeout(() => {
+                MaxSocket.socket.emit('terminal_input', {
+                    session_id: data.session_id,
+                    data: data.auto_cmd,
+                });
+            }, 1000);
+        }
+    });
+
+    MaxSocket.socket.on('terminal_output', data => {
+        const t = terminals[data.session_id];
+        if (t) t.terminal.write(data.data);
+    });
+
+    MaxSocket.socket.on('terminal_subscribed', data => {
+        // Reconnected to existing session
+    });
+
+    MaxSocket.socket.on('terminal_closed', data => {
+        const tab = document.querySelector(`.terminal-tab[data-session="${data.session_id}"]`);
+        if (tab) tab.querySelector('.terminal-tab-dot').className = 'terminal-tab-dot stopped';
+        const mini = document.getElementById(`mini-${data.session_id}`);
+        if (mini) mini.querySelector('.terminal-tab-dot').className = 'terminal-tab-dot stopped';
+    });
+
+    MaxSocket.socket.on('terminal_sessions_updated', sessions => {
+        // Update labels if they come through
+        sessions.forEach(s => {
+            const tab = document.querySelector(`.terminal-tab[data-session="${s.session_id}"]`);
+            if (tab && s.label) {
+                const close = tab.querySelector('.terminal-tab-close')?.outerHTML || '';
+                const dot = s.alive ? 'running' : 'stopped';
+                tab.innerHTML = `<span class="terminal-tab-dot ${dot}"></span> ${s.label} ${close}`;
+            }
+        });
+    });
+
+    // Reconnect to existing sessions
+    const existing = {{ sessions | tojson }};
+    if (existing.length > 0) {
+        existing.forEach((s, i) => {
+            _createTerminal(s.session_id, s.label, i === 0 ? 'main' : 'mini');
+        });
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && isFullscreen) toggleFullscreen();
+    });
+});
+</script>
+{% endblock %}
