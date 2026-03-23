@@ -145,11 +145,11 @@ def generate_claude_md(slug):
     if project.description:
         brief_parts.append(f'**Description:** {project.description}')
     if project.brief:
-        brief_parts.append(f'\n{project.brief}')
+        brief_parts.append(f'\n**Business Problem:**\n{project.brief}')
     if project.tech_stack:
         brief_parts.append(f'\n**Tech Stack:** {project.tech_stack}')
     if project.conventions:
-        brief_parts.append(f'\n**Conventions:** {project.conventions}')
+        brief_parts.append(f'\n**Proposed Solution:**\n{project.conventions}')
     if project.environments_info:
         brief_parts.append(f'\n**Environments:** {project.environments_info}')
     if project.github_url:

@@ -4,198 +4,159 @@
 {% block topbar_title %}Operation: {{ project.name }}{% endblock %}
 
 {% block content %}
+<!-- Header -->
 <div class="page-header">
     <div>
         <h1>&#x1F4C1; {{ project.name }}</h1>
-        <div class="text-sm text-muted mono mt-1">Safe house: {{ project.path }}</div>
+        <div class="text-xs text-muted mono mt-1">{{ project.path }}</div>
     </div>
-    <div class="flex gap-2">
+    <div class="flex gap-2 items-center">
         <span class="location-badge {{ project.location_type }}">
-            {% if project.location_type == 'local' %}🏠 Local HQ{% else %}🏢 Branch Office{% endif %}
+            {% if project.location_type == 'local' %}🏠 Local{% else %}🏢 Work{% endif %}
         </span>
         {% if agent and agent.status == 'running' %}
-        <span class="status-badge running"><span class="status-dot"></span> {{ get_status_label('running') }}</span>
+        <span class="status-badge running"><span class="status-dot"></span> Active</span>
         {% else %}
-        <span class="status-badge stopped"><span class="status-dot"></span> {{ get_status_label('stopped') }}</span>
+        <span class="status-badge stopped"><span class="status-dot"></span> Standby</span>
         {% endif %}
+        {% if project.github_url %}
+        <a href="{{ project.github_url }}" target="_blank" class="btn btn-secondary btn-sm" style="font-size: 11px;">&#x1F4C1; GitHub</a>
+        {% endif %}
+        <a href="{{ url_for('projects.view_claude_md', slug=project.slug) }}" class="btn btn-secondary btn-sm" style="font-size: 11px;">&#x1F4DD; CLAUDE.md</a>
+        <a href="{{ url_for('terminal.index', project=project.id) }}" class="btn btn-primary btn-sm" style="font-size: 11px;">&#x1F4BB; Mainframe</a>
     </div>
 </div>
 
-<div class="detail-grid">
-    <!-- Agent Deployment -->
-    <div class="detail-section">
-        <div class="detail-section-title">&#x1F916; {{ get_section_name('agent_control') }}</div>
-
+<!-- Top Row: Agent + Session + Quick Ops -->
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+    <!-- Agent Control — compact -->
+    <div class="detail-section" style="padding: 12px;">
+        <div class="detail-section-title" style="margin-bottom: 8px; font-size: 11px;">&#x1F916; Agent</div>
         {% if agent and agent.status == 'running' %}
-        <p class="text-sm mb-3 text-success">
-            Agent 86 is in the field. PID: {{ agent.pid }}
-            <br><span class="text-xs text-muted">Model: {{ agent.model }} | Mode: {{ agent.permission_mode }}</span>
-        </p>
-        <div class="agent-controls">
-            <form method="POST" action="{{ url_for('agents.stop', agent_id=agent.id) }}" style="display: inline;">
-                <button type="submit" class="btn btn-danger">&#x1F4DE; Recall Agent</button>
-            </form>
-            <a href="{{ url_for('terminal.index', project=project.id) }}" class="btn btn-secondary">&#x1F4BB; Open Mainframe</a>
-        </div>
+        <p class="text-xs text-success mb-2">Active — PID {{ agent.pid }} ({{ agent.model }})</p>
+        <form method="POST" action="{{ url_for('agents.stop', agent_id=agent.id) }}">
+            <button type="submit" class="btn btn-danger btn-sm" style="width: 100%;">&#x1F4DE; Recall</button>
+        </form>
         {% else %}
-        <p class="text-sm mb-3 text-muted" style="font-style: italic;">
-            "{{ smart_quote('empty') }}"
-        </p>
         <form method="POST" action="{{ url_for('agents.start', project_id=project.id) }}">
-            <div class="agent-controls mb-3">
-                <select name="model" class="form-select" style="width: auto;">
-                    <option value="sonnet">Sonnet — Agent 86 (reliable)</option>
-                    <option value="opus">Opus — The Chief (powerful)</option>
-                    <option value="haiku">Haiku — Larrabee (quick)</option>
-                </select>
-                <select name="permission_mode" class="form-select" style="width: auto;">
-                    <option value="plan">Plan — Cautious (99's recommendation)</option>
-                    <option value="auto">Auto — Autonomous (the old "wing it" trick)</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary">&#x1F680; Deploy Agent to the Field</button>
+            <select name="model" class="form-select mb-2" style="width: 100%; font-size: 11px;">
+                <option value="opus">Opus</option>
+                <option value="sonnet" selected>Sonnet</option>
+                <option value="haiku">Haiku</option>
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm" style="width: 100%;">&#x1F680; Deploy</button>
         </form>
         {% endif %}
     </div>
 
-    <!-- Operation Intel -->
-    <div class="detail-section">
-        <div class="flex items-center justify-between">
-            <div class="detail-section-title" style="margin-bottom: 0;">&#x1F4CB; Operation Dossier</div>
-            <a href="{{ url_for('projects.view_claude_md', slug=project.slug) }}" class="btn btn-secondary btn-sm" style="font-size: 10px;">&#x1F4DD; View CLAUDE.md</a>
-        </div>
+    <!-- Session ID -->
+    <div class="detail-section" style="padding: 12px;">
+        <div class="detail-section-title" style="margin-bottom: 8px; font-size: 11px;">&#x1F504; Resume Session</div>
+        <form method="POST" action="{{ url_for('agents.update_session', project_id=project.id) }}">
+            <input type="text" name="session_id" class="form-input mono mb-2" value="{{ agent.session_id if agent else '' }}" placeholder="Session ID or name" style="width: 100%; font-size: 11px; padding: 6px 8px;">
+            <button type="submit" class="btn btn-secondary btn-sm" style="width: 100%;">&#x1F4BE; Save</button>
+        </form>
+    </div>
 
-        <form method="POST" action="{{ url_for('projects.update_brief', slug=project.slug) }}" class="mt-3">
-            <div class="form-group" style="margin-bottom: 10px;">
-                <label class="form-label" style="font-size: 11px;">Description</label>
+    <!-- Quick Ops — compact grid -->
+    <div class="detail-section" style="padding: 12px;">
+        <div class="detail-section-title" style="margin-bottom: 8px; font-size: 11px;">&#x26A1; Quick Ops</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+            <form method="POST" action="{{ url_for('tasks.run_health', project_id=project.id) }}"><button type="submit" class="btn btn-secondary btn-sm" style="width:100%; font-size:10px;">&#x1F3E5; Health</button></form>
+            <form method="POST" action="{{ url_for('tasks.run_vuln', project_id=project.id) }}"><button type="submit" class="btn btn-secondary btn-sm" style="width:100%; font-size:10px;">&#x1F6E1; Vuln Scan</button></form>
+            <form method="POST" action="{{ url_for('environments.run_tests', project_id=project.id) }}"><button type="submit" class="btn btn-secondary btn-sm" style="width:100%; font-size:10px;">&#x1F9EA; Tests</button></form>
+            <form method="POST" action="{{ url_for('projects.sync_roadmap', project_id=project.id) }}"><button type="submit" class="btn btn-secondary btn-sm" style="width:100%; font-size:10px;">&#x1F4CB; Roadmap</button></form>
+            <form method="POST" action="{{ url_for('projects.analyze_logs', project_id=project.id) }}"><button type="submit" class="btn btn-secondary btn-sm" style="width:100%; font-size:10px;">&#x1F50D; Logs</button></form>
+            <form method="POST" action="{{ url_for('projects.learn', project_id=project.id) }}"><button type="submit" class="btn btn-secondary btn-sm" style="width:100%; font-size:10px;">&#x1F9E0; Learn</button></form>
+        </div>
+    </div>
+</div>
+
+<!-- Mission Brief — collapsible -->
+<div class="detail-section" style="padding: 12px; margin-bottom: 12px;">
+    <div class="flex items-center justify-between" style="cursor: pointer;" onclick="document.getElementById('brief-form').style.display = document.getElementById('brief-form').style.display === 'none' ? 'block' : 'none'">
+        <div class="detail-section-title" style="margin-bottom: 0; font-size: 11px;">&#x1F4CB; Mission Brief</div>
+        <span class="text-xs text-muted">{% if project.description %}{{ project.description[:60] }}...{% else %}Click to edit{% endif %} ▾</span>
+    </div>
+    <div id="brief-form" style="display: none; margin-top: 10px;">
+        <form method="POST" action="{{ url_for('projects.update_brief', slug=project.slug) }}">
+            <div class="form-group" style="margin-bottom: 8px;">
+                <label class="form-label" style="font-size: 10px;">Description</label>
                 <textarea name="description" class="form-textarea" rows="2" style="font-size: 12px;">{{ project.description }}</textarea>
             </div>
-            <div class="form-group" style="margin-bottom: 10px;">
-                <label class="form-label" style="font-size: 11px;">Mission Brief <span class="text-muted">(detailed scope, goals, context for the agent)</span></label>
-                <textarea name="brief" class="form-textarea" rows="4" style="font-size: 12px;" placeholder="What is this project? What should the agent know?">{{ project.brief }}</textarea>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <label class="form-label" style="font-size: 10px;">Business Problem</label>
+                    <textarea name="brief" class="form-textarea" rows="6" style="font-size: 12px;" placeholder="What problem does this solve? Who is it for? What's the context?">{{ project.brief }}</textarea>
+                </div>
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <label class="form-label" style="font-size: 10px;">Proposed Solution</label>
+                    <textarea name="conventions" class="form-textarea" rows="6" style="font-size: 12px;" placeholder="How are we solving it? Architecture, approach, key decisions...">{{ project.conventions }}</textarea>
+                </div>
             </div>
-            <div class="form-group" style="margin-bottom: 10px;">
-                <label class="form-label" style="font-size: 11px;">Tech Stack</label>
-                <textarea name="tech_stack" class="form-textarea" rows="2" style="font-size: 12px;" placeholder="e.g. Flask, SQLAlchemy, HTMX, Tailwind, SQLite">{{ project.tech_stack }}</textarea>
-            </div>
-            <div class="form-group" style="margin-bottom: 10px;">
-                <label class="form-label" style="font-size: 11px;">Conventions <span class="text-muted">(coding style, patterns, naming)</span></label>
-                <textarea name="conventions" class="form-textarea" rows="2" style="font-size: 12px;" placeholder="e.g. Use blueprints, snake_case, Jinja2 templates">{{ project.conventions }}</textarea>
-            </div>
-            <div class="form-group" style="margin-bottom: 10px;">
-                <label class="form-label" style="font-size: 11px;">Environments <span class="text-muted">(servers, URLs, deployment info)</span></label>
-                <textarea name="environments_info" class="form-textarea" rows="2" style="font-size: 12px;" placeholder="e.g. Prod: assetarc.io (DigitalOcean), Dev: localhost:5000">{{ project.environments_info }}</textarea>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <label class="form-label" style="font-size: 10px;">Tech Stack</label>
+                    <textarea name="tech_stack" class="form-textarea" rows="2" style="font-size: 12px;" placeholder="Flask, SQLAlchemy, etc.">{{ project.tech_stack }}</textarea>
+                </div>
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <label class="form-label" style="font-size: 10px;">Environments</label>
+                    <textarea name="environments_info" class="form-textarea" rows="2" style="font-size: 12px;" placeholder="Prod: example.com, Dev: localhost:5000">{{ project.environments_info }}</textarea>
+                </div>
             </div>
             <div class="flex gap-2">
-                <button type="submit" class="btn btn-secondary btn-sm">&#x1F4BE; Save Brief</button>
-                <button type="submit" formaction="{{ url_for('projects.generate_claude_md', slug=project.slug) }}" class="btn btn-primary btn-sm">&#x1F4DD; Save & Generate CLAUDE.md</button>
+                <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 11px;">&#x1F4BE; Save</button>
+                <button type="submit" formaction="{{ url_for('projects.generate_claude_md', slug=project.slug) }}" class="btn btn-primary btn-sm" style="font-size: 11px;">&#x1F4DD; Save & Generate CLAUDE.md</button>
             </div>
         </form>
+    </div>
+</div>
 
-        <div class="text-sm">
-            {% if project.github_url %}
-            <p class="mb-2">&#x1F4C1; <a href="{{ project.github_url }}" target="_blank">CONTROL Files (GitHub)</a></p>
-            {% endif %}
-            {% if project.notion_page_id %}
-            <p class="mb-2">&#x1F4DD; Intelligence Dossier: {{ project.notion_page_id }}</p>
-            {% endif %}
-            <p class="text-muted text-xs mt-3">Operation commenced: <time data-utc="{{ project.created_at }}">{{ project.created_at }}</time></p>
+<!-- Bottom Row: Training Ground + Field Report + KAOS -->
+<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+    <div>
+        <!-- Training Ground -->
+        <div class="detail-section" style="padding: 12px; margin-bottom: 12px;">
+            <div class="detail-section-title" style="margin-bottom: 8px; font-size: 11px;">&#x1F3CB; Training Ground</div>
+            <div id="regression-status" style="min-height: 30px;">
+                <span class="text-xs text-muted">Loading...</span>
+            </div>
+            <div class="flex gap-2 mt-2" style="flex-wrap: wrap;">
+                <form method="POST" action="{{ url_for('environments.create_regression', project_id=project.id) }}" class="flex gap-1 items-center">
+                    <input type="text" name="branch_name" class="form-input" placeholder="Branch" style="width: 100px; font-size: 10px; padding: 4px 6px;">
+                    <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 10px;">&#x2795;</button>
+                </form>
+                <form method="POST" action="{{ url_for('environments.switch_production', project_id=project.id) }}">
+                    <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 10px;">&#x1F3E2; Prod</button>
+                </form>
+            </div>
         </div>
 
-        <!-- Session ID -->
-        <div class="mt-3" style="border-top: 1px solid var(--border); padding-top: 10px;">
-            <form method="POST" action="{{ url_for('agents.update_session', project_id=project.id) }}" class="flex gap-2 items-center">
-                <label class="text-xs text-muted" style="white-space: nowrap;">Resume Session:</label>
-                <input type="text" name="session_id" class="form-input mono" value="{{ agent.session_id if agent else '' }}" placeholder="Session ID or name" style="flex: 1; font-size: 11px; padding: 4px 8px;">
-                <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 10px;">&#x1F4BE;</button>
+        <!-- KAOS Territory -->
+        <div class="detail-section" style="padding: 12px;">
+            <div class="detail-section-title" style="margin-bottom: 8px; font-size: 11px; color: var(--error);">&#x2620; KAOS Territory</div>
+            <form method="POST" action="{{ url_for('projects.delete', slug=project.slug) }}" onsubmit="return confirm('Remove this operation from CONTROL? Files are preserved.');">
+                <button type="submit" class="btn btn-danger btn-sm" style="font-size: 11px;">&#x1F5D1; Disavow</button>
             </form>
         </div>
     </div>
 
-    <!-- Field Report (Agent Log) -->
-    <div class="detail-section full-width">
-        <div class="detail-section-title">&#x1F4DC; {{ get_section_name('agent_log') }}</div>
-        <div class="agent-log" id="agent-log">
+    <!-- Field Report -->
+    <div class="detail-section" style="padding: 12px;">
+        <div class="detail-section-title" style="margin-bottom: 8px; font-size: 11px;">&#x1F4DC; Field Report</div>
+        <div class="agent-log" id="agent-log" style="max-height: 250px;">
             {% if agent and agent.status == 'running' %}
-            <div class="agent-log-entry text-muted">Agent 86 is transmitting. Standing by for field reports...</div>
+            <div class="agent-log-entry text-muted">Agent 86 is transmitting...</div>
             {% else %}
-            <div class="agent-log-entry text-muted">"{{ smart_quote('empty') }}" — Deploy an agent to see field reports.</div>
+            <div class="agent-log-entry text-muted">"{{ smart_quote('empty') }}"</div>
             {% endif %}
         </div>
-
         {% if agent and agent.status == 'running' %}
-        <div class="mt-3">
-            <form id="agent-msg-form" class="flex gap-2" onsubmit="sendAgentMessage(event)">
-                <input type="text" id="agent-msg-input" class="form-input" placeholder="Send orders to Agent 86..." style="flex: 1;">
-                <button type="submit" class="btn btn-primary">&#x1F4E8; Transmit</button>
-            </form>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="detail-section">
-        <div class="detail-section-title">&#x26A1; Quick Ops</div>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-            <a href="{{ url_for('terminal.index', project=project.id) }}" class="btn btn-secondary btn-sm">&#x1F4BB; Open Mainframe</a>
-            <a href="{{ url_for('bots.index') }}" class="btn btn-secondary btn-sm">&#x1F4DE; Shoe Phone Config</a>
-            <form method="POST" action="{{ url_for('tasks.run_health', project_id=project.id) }}" style="display:inline;">
-                <button type="submit" class="btn btn-secondary btn-sm" style="width:100%; text-align:left;">&#x1F3E5; CONTROL Medical</button>
-            </form>
-            <form method="POST" action="{{ url_for('tasks.run_vuln', project_id=project.id) }}" style="display:inline;">
-                <button type="submit" class="btn btn-secondary btn-sm" style="width:100%; text-align:left;">&#x1F6E1; Counter-KAOS Scan</button>
-            </form>
-            <form method="POST" action="{{ url_for('environments.run_tests', project_id=project.id) }}" style="display:inline;">
-                <button type="submit" class="btn btn-secondary btn-sm" style="width:100%; text-align:left;">&#x1F9EA; Run Test Suite</button>
-            </form>
-            <form method="POST" action="{{ url_for('projects.sync_roadmap', project_id=project.id) }}" style="display:inline;">
-                <button type="submit" class="btn btn-secondary btn-sm" style="width:100%; text-align:left;">&#x1F4CB; Sync Roadmap</button>
-            </form>
-            <form method="POST" action="{{ url_for('projects.analyze_logs', project_id=project.id) }}" style="display:inline;">
-                <button type="submit" class="btn btn-secondary btn-sm" style="width:100%; text-align:left;">&#x1F50D; Analyse Logs</button>
-            </form>
-            <form method="POST" action="{{ url_for('projects.learn', project_id=project.id) }}" style="display:inline;">
-                <button type="submit" class="btn btn-secondary btn-sm" style="width:100%; text-align:left;">&#x1F9E0; Learn from History</button>
-            </form>
-            {% if project.notion_page_id %}
-            <form method="POST" action="{{ url_for('projects.sync_notion', project_id=project.id) }}" style="display:inline;">
-                <button type="submit" class="btn btn-secondary btn-sm" style="width:100%; text-align:left;">&#x1F4DD; Sync Notion Dossier</button>
-            </form>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Training Ground (Regression) -->
-    <div class="detail-section">
-        <div class="detail-section-title">&#x1F3CB; Training Ground (Regression)</div>
-        <p class="text-xs text-muted mb-3">Create an isolated branch to test changes before promoting to production.</p>
-
-        <div id="regression-status" class="mb-3">
-            <div class="loading-spinner" style="padding: 12px;">
-                <div class="spinner"></div>
-                <span class="text-xs text-muted">Checking environment...</span>
-            </div>
-        </div>
-
-        <div class="flex gap-2" style="flex-wrap: wrap;">
-            <form method="POST" action="{{ url_for('environments.create_regression', project_id=project.id) }}" class="flex gap-2 items-center">
-                <input type="text" name="branch_name" class="form-input" placeholder="Branch name (optional)" style="width: 180px; font-size: 12px; padding: 6px 10px;">
-                <button type="submit" class="btn btn-secondary btn-sm">&#x2795; New Training Ground</button>
-            </form>
-            <form method="POST" action="{{ url_for('environments.switch_production', project_id=project.id) }}">
-                <button type="submit" class="btn btn-secondary btn-sm">&#x1F3E2; Back to Production</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- KAOS Territory (Danger Zone) -->
-    <div class="detail-section">
-        <div class="detail-section-title" style="color: var(--error);">&#x2620; {{ get_section_name('danger_zone') }}</div>
-        <p class="text-sm text-muted mb-3" style="font-style: italic;">"Careful, Chief. This is KAOS territory."</p>
-        <form method="POST" action="{{ url_for('projects.delete', slug=project.slug) }}" onsubmit="return confirm('{{ smart_quote('confirm') }} This will remove the operation from CONTROL. Files at the safe house will not be destroyed.');">
-            <button type="submit" class="btn btn-danger">&#x1F5D1; Disavow Operation</button>
+        <form id="agent-msg-form" class="flex gap-2 mt-2" onsubmit="sendAgentMessage(event)">
+            <input type="text" id="agent-msg-input" class="form-input" placeholder="Send orders to 86..." style="flex: 1; font-size: 12px;">
+            <button type="submit" class="btn btn-primary btn-sm">&#x1F4E8;</button>
         </form>
-        <p class="text-xs text-muted mt-2">Removes from CONTROL only. Safe house files are preserved.</p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -210,43 +171,32 @@ const AGENT_ID = null;
 </script>
 <script src="{{ url_for('static', filename='js/agent.js') }}"></script>
 <script>
-// Load regression status
 fetch('/environments/status/{{ project.id }}')
     .then(r => r.json())
     .then(data => {
         const el = document.getElementById('regression-status');
         if (!data.available) {
-            el.innerHTML = '<p class="text-xs text-muted">Not a git repository — regression branches unavailable.</p>';
+            el.innerHTML = '<p class="text-xs text-muted">Not a git repo.</p>';
             return;
         }
-        let html = '<div class="text-sm">';
-        html += `<p class="mb-1"><strong>Current branch:</strong> <span class="mono">${data.current_branch}</span>`;
-        if (data.is_on_regression) {
-            html += ' <span class="status-badge running" style="font-size:10px;"><span class="status-dot"></span> Training Ground</span>';
-        } else {
-            html += ' <span class="status-badge stopped" style="font-size:10px;"><span class="status-dot"></span> Production</span>';
-        }
-        html += '</p>';
-        html += `<p class="mb-1 text-xs text-muted">Main branch: ${data.main_branch}</p>`;
-        if (data.has_uncommitted) {
-            html += '<p class="text-xs" style="color:var(--warning);">&#x26A0; Uncommitted changes detected</p>';
-        }
+        let html = `<div class="text-xs"><strong>${data.current_branch}</strong>`;
+        html += data.is_on_regression
+            ? ' <span class="status-badge running" style="font-size:9px;"><span class="status-dot"></span> Regression</span>'
+            : ' <span class="status-badge stopped" style="font-size:9px;"><span class="status-dot"></span> Production</span>';
+        if (data.has_uncommitted) html += '<br><span style="color:var(--warning);">⚠ Uncommitted changes</span>';
         if (data.regression_branches.length > 0) {
-            html += '<p class="mt-2 mb-1 text-xs text-muted">Training grounds:</p>';
+            html += '<div class="mt-1">';
             data.regression_branches.forEach(b => {
-                html += `<div class="flex items-center gap-2 mb-1">`;
-                html += `<span class="mono text-xs">${b}</span>`;
-                html += `<form method="POST" action="/environments/switch-regression/{{ project.id }}" style="display:inline;"><input type="hidden" name="branch" value="${b}"><button type="submit" class="btn btn-secondary btn-sm" style="font-size:10px;padding:2px 6px;">Switch</button></form>`;
-                html += `<form method="POST" action="/environments/promote/{{ project.id }}" style="display:inline;" onsubmit="return confirm('Promote ${b} to production?');"><input type="hidden" name="branch" value="${b}"><button type="submit" class="btn btn-primary btn-sm" style="font-size:10px;padding:2px 6px;">&#x1F680; Promote</button></form>`;
-                html += `<form method="POST" action="/environments/delete-regression/{{ project.id }}" style="display:inline;" onsubmit="return confirm('Delete training ground ${b}?');"><input type="hidden" name="branch" value="${b}"><button type="submit" class="btn btn-danger btn-sm" style="font-size:10px;padding:2px 6px;">&#x1F5D1;</button></form>`;
+                html += `<div class="flex items-center gap-1 mb-1"><span class="mono" style="font-size:10px;">${b}</span>`;
+                html += `<form method="POST" action="/environments/switch-regression/{{ project.id }}" style="display:inline;"><input type="hidden" name="branch" value="${b}"><button class="btn btn-secondary btn-sm" style="font-size:9px;padding:1px 4px;">↗</button></form>`;
+                html += `<form method="POST" action="/environments/promote/{{ project.id }}" style="display:inline;" onsubmit="return confirm('Promote?');"><input type="hidden" name="branch" value="${b}"><button class="btn btn-primary btn-sm" style="font-size:9px;padding:1px 4px;">🚀</button></form>`;
                 html += `</div>`;
             });
+            html += '</div>';
         }
         html += '</div>';
         el.innerHTML = html;
     })
-    .catch(() => {
-        document.getElementById('regression-status').innerHTML = '<p class="text-xs text-muted">Could not check regression status.</p>';
-    });
+    .catch(() => { document.getElementById('regression-status').innerHTML = '<p class="text-xs text-muted">Unavailable</p>'; });
 </script>
 {% endblock %}

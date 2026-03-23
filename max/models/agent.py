@@ -13,10 +13,14 @@ class Agent:
     session_id: str = ''
     pid: int = None
     status: str = 'stopped'
+    state: str = 'offline'
     run_location: str = 'local'
     model: str = 'sonnet'
     permission_mode: str = 'plan'
     system_prompt: str = ''
+    last_task: str = ''
+    total_tasks: int = 0
+    total_tokens: int = 0
     started_at: str = ''
     stopped_at: str = ''
     last_heartbeat: str = ''
